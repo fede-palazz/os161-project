@@ -1,7 +1,5 @@
 # OS161 notes
 
-[TOC]
-
 ## Intro (docker image)
 
 > For the installation instructions using Docker you can refer to [this](https://github.com/marcopalena/polito-os161-docker).
@@ -13,6 +11,21 @@ The image is based on Ubuntu 20.04 and contains the following components:
 - Build toolchain (gcc, gdb, etc.)
 
 The sudo password for os161user is `os161`. Note that the installed packages will not be stored in the volume, therefore they will not be persisted if you destroy and recreate the container. They will however still be available if you stop and restart the container.
+
+## Get started
+
+1. Clone the repository
+
+2. Create a `.env` file in the root directory with the following content:
+
+   ```yaml
+   MOUNTPOINT=FOLDER_PATH/home/
+   MOUNTPOINT_TYPE=custom
+   ```
+
+3. Start the container: `docker compose up -d`
+
+4. To stop the container: `docker compose down`
 
 ### OS161 Environment
 
