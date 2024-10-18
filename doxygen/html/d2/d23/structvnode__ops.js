@@ -1,0 +1,27 @@
+var structvnode__ops =
+[
+    [ "vop_creat", "d2/d23/structvnode__ops.html#a5ccad958faad70d26410f0e299112044", null ],
+    [ "vop_eachopen", "d2/d23/structvnode__ops.html#a94382b7025d323b2a1e1cfb5e81c83e2", null ],
+    [ "vop_fsync", "d2/d23/structvnode__ops.html#ae660d3b1514a4edf1bb290143bbd3aba", null ],
+    [ "vop_getdirentry", "d2/d23/structvnode__ops.html#a1c7ccde3bcdb3eddaf0d2d0f08f59132", null ],
+    [ "vop_gettype", "d2/d23/structvnode__ops.html#ae9ba262b585babe64435f725e9c05798", null ],
+    [ "vop_ioctl", "d2/d23/structvnode__ops.html#a48ab3455af3daf67654e5f2230cbc290", null ],
+    [ "vop_isseekable", "d2/d23/structvnode__ops.html#a555e6d77c91e88e3d11604181ef012f3", null ],
+    [ "vop_link", "d2/d23/structvnode__ops.html#a941c261ce06039e0ce71f2a79a27daf2", null ],
+    [ "vop_lookparent", "d2/d23/structvnode__ops.html#a4b55e32cdae9328862292abb77c28a17", null ],
+    [ "vop_lookup", "d2/d23/structvnode__ops.html#aec3afdddc03bed4dc8d0fd72000d8c8c", null ],
+    [ "vop_magic", "d2/d23/structvnode__ops.html#a0839d0866937c0a8d891cf3c66467301", null ],
+    [ "vop_mkdir", "d2/d23/structvnode__ops.html#aab16cf906fe284815165fcd955a29461", null ],
+    [ "vop_mmap", "d2/d23/structvnode__ops.html#ab5a8c8ff0c1e39242419845ca2d592f0", null ],
+    [ "vop_namefile", "d2/d23/structvnode__ops.html#ab725814f91884158a77d37190ddf8988", null ],
+    [ "vop_read", "d2/d23/structvnode__ops.html#a27f9e24291c06867658d7271d4c81ebb", null ],
+    [ "vop_readlink", "d2/d23/structvnode__ops.html#a7007521372dc87659123e9b4c2d843c1", null ],
+    [ "vop_reclaim", "d2/d23/structvnode__ops.html#a9fdeb39f703c401e84f3b97b46214a82", null ],
+    [ "vop_remove", "d2/d23/structvnode__ops.html#ad05acba74a24f54dd02f772109eca4b0", null ],
+    [ "vop_rename", "d2/d23/structvnode__ops.html#a45f8f617195f9b24f4d86a221025d64c", null ],
+    [ "vop_rmdir", "d2/d23/structvnode__ops.html#ab07c56da78a1f5e93b2ae3f6ba631cef", null ],
+    [ "vop_stat", "d2/d23/structvnode__ops.html#a0f0fbaf280bc0561bdfb50158b99158d", null ],
+    [ "vop_symlink", "d2/d23/structvnode__ops.html#a1460761fd3b6af57bb26e713f31756be", null ],
+    [ "vop_truncate", "d2/d23/structvnode__ops.html#a9494ed607e9061d4d9a3539af95f17cf", null ],
+    [ "vop_write", "d2/d23/structvnode__ops.html#ad52b43266580431ad82764d26687e6cf", null ]
+];

@@ -1,0 +1,27 @@
+# VS Code files
+**/.vscode-server
+**/.vscode-server
+**/.cache
+**/.dotnet
+
+# File manager
+.directory
+.DS_Store
+.env
+
+# OS161
+home/**/.depend
+home/**/.settings
+home/**/.project
+home/**/.cproject
+home/os161/src/kern/compile/
+home/**/defs.mk
+home/**/build
+#/user/testbin/randcall/calls.c
+home/**/*.swp
+home/**/defs.mk
+home/**/*.orig
+
+# Kernel output files
+home/os161/root/kernel
+home/os161/root/kernel-**

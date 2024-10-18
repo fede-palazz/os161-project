@@ -1,0 +1,24 @@
+
+services:
+  os161:
+    image: marcopalena/polito-os161:latest
+    container_name: os161-project
+    stdin_open: true
+    build:
+      context: .
+      cache_from:
+        - marcopalena/polito-os161:latest
+    environment:
+        - MOUNTPOINT=${MOUNTPOINT}
+        - MOUNTPOINT_TYPE=${MOUNTPOINT_TYPE}
+    volumes:
+      - os161-project-vol:/home/os161user
+
+volumes:
+  os161-project-vol:
+    name: os161-project-vol
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '${MOUNTPOINT}'
