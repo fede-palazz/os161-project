@@ -8,6 +8,7 @@
 .directory
 .DS_Store
 .env
+.bash_history
 
 # OS161
 home/**/.depend
