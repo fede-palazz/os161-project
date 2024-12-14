@@ -57,9 +57,44 @@
 #include <proc.h>
 #include <current.h>
 #include <addrspace.h>
+#include <vm.h>
 #include <vnode.h>
 #include <elf.h>
+#include "opt-rudevm.h"
+#include <pt.h>
 
+
+#if OPT_RUDEVM
+/**
+ * @brief load a page from the elf file to the physical address page_paddr
+ * 
+ * @param v vnode of the elf
+ * @param offset offsett within the elf
+ * @param page_paddr target physical address for the coming page
+ * @param size size of the page
+ * @return int 
+ */
+void
+load_page(struct vnode *v, off_t offset, paddr_t page_paddr, size_t size)
+{
+	struct iovec iov;
+    struct uio ku;
+	int result;
+
+	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), size, offset, UIO_READ);
+    result = VOP_READ(v, &ku);
+    if (result)
+    {
+        panic("Error loading page\n");
+    }
+
+	if (ku.uio_resid != 0) {
+		/* short read; problem with executable? */
+		panic("ELF: short read on segment - file truncated?");
+	}
+
+}
+#else
 /*
  * Load a segment at virtual address VADDR. The segment in memory
  * extends from VADDR up to (but not including) VADDR+MEMSIZE. The
@@ -144,6 +179,7 @@ load_segment(struct addrspace *as, struct vnode *v,
 
 	return result;
 }
+#endif
 
 /*
  * Load an ELF executable user program into the current address space.
@@ -243,16 +279,25 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 			return ENOEXEC;
 		}
 
+#if OPT_RUDEVM
+		result = as_define_region(as,
+					  ph.p_vaddr, ph.p_memsz,
+					  ph.p_offset,
+					  ph.p_filesz);
+#else
 		result = as_define_region(as,
 					  ph.p_vaddr, ph.p_memsz,
 					  ph.p_flags & PF_R,
 					  ph.p_flags & PF_W,
 					  ph.p_flags & PF_X);
+#endif
+
 		if (result) {
 			return result;
 		}
 	}
 
+#if !OPT_RUDEVM
 	result = as_prepare_load(as);
 	if (result) {
 		return result;
@@ -300,8 +345,9 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 	if (result) {
 		return result;
 	}
-
+#endif
 	*entrypoint = eh.e_entry;
 
 	return 0;
+
 }

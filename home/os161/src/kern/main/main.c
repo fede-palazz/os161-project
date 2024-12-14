@@ -50,8 +50,17 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
-
-
+#include "opt-rudevm.h"
+#include "opt-stats.h"
+#if OPT_RUDEVM 
+#include <coremap.h>
+#endif
+#if OPT_STATS
+#include <vmstats.h>
+#endif
+#if OPT_SWAP
+#include <swapfile.h>
+#endif
 /*
  * These two pieces of data are maintained by the makefiles and build system.
  * buildconfig is the name of the config file the kernel was configured with.
@@ -106,7 +115,11 @@ boot(void)
 	kprintf("\n");
 
 	/* Early initialization. */
+#if OPT_RUDEVM 
+	coremap_bootstrap();
+#else
 	ram_bootstrap();
+#endif
 	proc_bootstrap();
 	thread_bootstrap();
 	hardclock_bootstrap();
@@ -150,6 +163,12 @@ shutdown(void)
 
 	kprintf("Shutting down.\n");
 
+#if OPT_STATS
+	vmstats_print();
+#endif
+#if OPT_SWAP
+	swap_destroy();
+#endif
 	vfs_clearbootfs();
 	vfs_clearcurdir();
 	vfs_unmountall();

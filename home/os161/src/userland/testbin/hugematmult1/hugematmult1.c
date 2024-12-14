@@ -27,44 +27,64 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _SYSCALL_H_
-#define _SYSCALL_H_
-
-
-#include <cdefs.h> /* for __DEAD */
-#include <opt-syscalls.h>
-
-struct trapframe; /* from <machine/trapframe.h> */
-
-/*
- * The system call dispatcher.
+/* matmult.c
+ *    Test program to do matrix multiplication on large arrays.
+ *
+ *    This version uses a storage-inefficient technique to get a
+ *    shorter running time for the same memory usage.
+ *
+ *    Intended to stress virtual memory system.
+ *
+ *    Once the VM system assignment is complete your system should be
+ *    able to survive this.
  */
 
-void syscall(struct trapframe *tf);
+#include <unistd.h>
+#include <stdio.h>
 
-/*
- * Support functions.
- */
+#define Dim 	133	/* sum total of the arrays doesn't fit in
+			 * physical memory
+			 */
 
-/* Helper for fork(). You write this. */
-void enter_forked_process(struct trapframe *tf);
+#define RIGHT  103126870		/* correct answer */
 
-/* Enter user mode. Does not return. */
-__DEAD void enter_new_process(int argc, userptr_t argv, userptr_t env,
-		       vaddr_t stackptr, vaddr_t entrypoint);
+int A[Dim][Dim];
+int B[Dim][Dim];
+int C[Dim][Dim];
+int T[Dim][Dim][Dim];
 
+int
+main(void)
+{
+    int i, j, k, r;
 
-/*
- * Prototypes for IN-KERNEL entry points for system call implementations.
- */
+    for (i = 0; i < Dim; i++)		/* first initialize the matrices */
+	for (j = 0; j < Dim; j++) {
+	     A[i][j] = i;
+	     B[i][j] = j;
+	     C[i][j] = 0;
+	}
 
-int sys_reboot(int code);
-int sys___time(userptr_t user_seconds, userptr_t user_nanoseconds);
+    for (i = 0; i < Dim; i++)		/* then multiply them together */
+	for (j = 0; j < Dim; j++)
+            for (k = 0; k < Dim; k++)
+		T[i][j][k] = A[i][k] * B[k][j];
 
-#if OPT_SYSCALLS
-int sys_write(int fd, userptr_t buf_ptr, size_t size);
-int sys_read(int fd, userptr_t buf_ptr, size_t size);
-void sys__exit(int status);
-#endif
+    for (i = 0; i < Dim; i++)
+	for (j = 0; j < Dim; j++)
+            for (k = 0; k < Dim; k++)
+		C[i][j] += T[i][j][k];
 
-#endif /* _SYSCALL_H_ */
+    r = 0;
+    for (i = 0; i < Dim; i++)
+	    r += C[i][i];
+
+    printf("matmult finished.\n");
+    printf("answer is: %d (should be %d)\n", r, RIGHT);
+    if (r != RIGHT) {
+	    printf("FAILED\n");
+	    return 1;
+    }
+    printf("Passed.\n");
+    return 0;
+}
