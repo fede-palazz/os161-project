@@ -29,4 +29,13 @@ void tlb_invalidate(void);
  */
 void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro);
 
+/**
+ * Removes a TLB entry corresponding to a virtual address.
+ *
+ * This function searches for a TLB entry that matches the given virtual address
+ * and invalidates it if found.
+ *
+ * @param vaddr Virtual address whose mapping should be removed.
+ */
+void tlb_remove(vaddr_t vaddr);
 #endif /* _VM_TLB_H_ */

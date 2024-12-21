@@ -58,3 +58,20 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
     victim = (victim + 1) % NUM_TLB; // Update victim index for round-robin
     splx(spl); // Restore interrupts
 }
+
+/**
+ * Removes a TLB entry corresponding to a virtual address.
+ *
+ * This function searches the TLB for an entry that matches the provided
+ * virtual address. If found, it invalidates the entry by writing invalid
+ * values to the matching index.
+ *
+ * @param vaddr Virtual address whose mapping should be removed.
+ */
+void tlb_remove(vaddr_t vaddr)
+{
+    int index;
+    index = tlb_probe(vaddr, 0); // to find the index of the TLB entry that matches the virtual address
+    if (index >= 0)
+        tlb_write(TLBHI_INVALID(index), TLBLO_INVALID(), index);
+}
