@@ -445,3 +445,11 @@ file		test/semunit.c
 file		test/kmalloctest.c
 file		test/fstest.c
 optfile net	test/nettest.c
+
+########################################
+#                                      #
+#              Project code            #
+#                                      #
+########################################
+defoption smartvm
+optfile   smartvm    vm/vm_tlb.c
