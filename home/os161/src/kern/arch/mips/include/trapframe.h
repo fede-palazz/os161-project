@@ -38,59 +38,72 @@
  */
 
 struct trapframe {
-	uint32_t tf_vaddr;	/* coprocessor 0 vaddr register */
-	uint32_t tf_status;	/* coprocessor 0 status register */
-	uint32_t tf_cause;	/* coprocessor 0 cause register */
-	uint32_t tf_lo;
-	uint32_t tf_hi;
-	uint32_t tf_ra;		/* Saved register 31 */
-	uint32_t tf_at;		/* Saved register 1 (AT) */
-	uint32_t tf_v0;		/* Saved register 2 (v0) */
-	uint32_t tf_v1;		/* etc. */
-	uint32_t tf_a0;
-	uint32_t tf_a1;
-	uint32_t tf_a2;
-	uint32_t tf_a3;
-	uint32_t tf_t0;
-	uint32_t tf_t1;
-	uint32_t tf_t2;
-	uint32_t tf_t3;
-	uint32_t tf_t4;
-	uint32_t tf_t5;
-	uint32_t tf_t6;
-	uint32_t tf_t7;
-	uint32_t tf_s0;
-	uint32_t tf_s1;
-	uint32_t tf_s2;
-	uint32_t tf_s3;
-	uint32_t tf_s4;
-	uint32_t tf_s5;
-	uint32_t tf_s6;
-	uint32_t tf_s7;
-	uint32_t tf_t8;
-	uint32_t tf_t9;
-	uint32_t tf_gp;
-	uint32_t tf_sp;
-	uint32_t tf_s8;
-	uint32_t tf_epc;	/* coprocessor 0 epc register */
+    uint32_t tf_vaddr;  /* Virtual address that caused the exception (from coprocessor 0 vaddr register) */
+    uint32_t tf_status; /* Processor status register (coprocessor 0 status register) */
+    uint32_t tf_cause;  /* Cause of the exception (coprocessor 0 cause register) */
+    uint32_t tf_lo;     /* Low-order result of multiplication/division */
+    uint32_t tf_hi;     /* High-order result of multiplication/division */
+
+    /* General-purpose registers (saved during the exception): */
+    uint32_t tf_ra; /* Return address (register 31) */
+    uint32_t tf_at; /* Assembler temporary register (register 1) */
+    uint32_t tf_v0; /* Function return value or syscall return (register 2) */
+    uint32_t tf_v1; /* Secondary return value (register 3) */
+
+    /* Function argument registers (used to pass arguments to functions): */
+    uint32_t tf_a0; /* First argument to a function or syscall (register 4) */
+    uint32_t tf_a1; /* Second argument (register 5) */
+    uint32_t tf_a2; /* Third argument (register 6) */
+    uint32_t tf_a3; /* Fourth argument (register 7) */
+
+    /* Temporary registers (not preserved across function calls): */
+    uint32_t tf_t0; /* Temporary register 0 (register 8) */
+    uint32_t tf_t1; /* Temporary register 1 (register 9) */
+    uint32_t tf_t2; /* Temporary register 2 (register 10) */
+    uint32_t tf_t3; /* Temporary register 3 (register 11) */
+    uint32_t tf_t4; /* Temporary register 4 (register 12) */
+    uint32_t tf_t5; /* Temporary register 5 (register 13) */
+    uint32_t tf_t6; /* Temporary register 6 (register 14) */
+    uint32_t tf_t7; /* Temporary register 7 (register 15) */
+
+    /* Callee-saved registers (must be preserved across function calls): */
+    uint32_t tf_s0; /* Saved register 0 (register 16) */
+    uint32_t tf_s1; /* Saved register 1 (register 17) */
+    uint32_t tf_s2; /* Saved register 2 (register 18) */
+    uint32_t tf_s3; /* Saved register 3 (register 19) */
+    uint32_t tf_s4; /* Saved register 4 (register 20) */
+    uint32_t tf_s5; /* Saved register 5 (register 21) */
+    uint32_t tf_s6; /* Saved register 6 (register 22) */
+    uint32_t tf_s7; /* Saved register 7 (register 23) */
+
+    /* Additional temporary registers: */
+    uint32_t tf_t8; /* Temporary register 8 (register 24) */
+    uint32_t tf_t9; /* Temporary register 9 (register 25) */
+
+    /* Special purpose registers: */
+    uint32_t tf_gp; /* Global pointer (register 28) */
+    uint32_t tf_sp; /* Stack pointer (register 29) */
+    uint32_t tf_s8; /* Saved register 8 or frame pointer (register 30) */
+
+    uint32_t tf_epc; /* Exception program counter (address of the instruction causing the exception) */
 };
 
 /*
  * MIPS exception codes.
  */
-#define EX_IRQ    0    /* Interrupt */
-#define EX_MOD    1    /* TLB Modify (write to read-only page) */
-#define EX_TLBL   2    /* TLB miss on load */
-#define EX_TLBS   3    /* TLB miss on store */
-#define EX_ADEL   4    /* Address error on load */
-#define EX_ADES   5    /* Address error on store */
-#define EX_IBE    6    /* Bus error on instruction fetch */
-#define EX_DBE    7    /* Bus error on data load *or* store */
-#define EX_SYS    8    /* Syscall */
-#define EX_BP     9    /* Breakpoint */
-#define EX_RI     10   /* Reserved (illegal) instruction */
-#define EX_CPU    11   /* Coprocessor unusable */
-#define EX_OVF    12   /* Arithmetic overflow */
+#define EX_IRQ 0  /* Interrupt */
+#define EX_MOD 1  /* TLB Modify (write to read-only page) */
+#define EX_TLBL 2 /* TLB miss on load */
+#define EX_TLBS 3 /* TLB miss on store */
+#define EX_ADEL 4 /* Address error on load */
+#define EX_ADES 5 /* Address error on store */
+#define EX_IBE 6  /* Bus error on instruction fetch */
+#define EX_DBE 7  /* Bus error on data load *or* store */
+#define EX_SYS 8  /* Syscall */
+#define EX_BP 9   /* Breakpoint */
+#define EX_RI 10  /* Reserved (illegal) instruction */
+#define EX_CPU 11 /* Coprocessor unusable */
+#define EX_OVF 12 /* Arithmetic overflow */
 
 /*
  * Function to enter user mode. Does not return. The trapframe must
@@ -103,6 +116,5 @@ __DEAD void mips_usermode(struct trapframe *tf);
  */
 extern vaddr_t cpustacks[];
 extern vaddr_t cputhreads[];
-
 
 #endif /* _MIPS_TRAPFRAME_H_ */
