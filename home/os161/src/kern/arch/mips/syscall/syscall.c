@@ -27,19 +27,31 @@
  * SUCH DAMAGE.
  */
 
+/**
+ * @file syscall.c
+ * @brief System call dispatcher and process management functions.
+ * 
+ * @details Contains the system call dispatcher and related utilities 
+ *          for handling system calls and entering user mode for 
+ *          forked processes.
+ */
+
 #include <types.h>
 #include <kern/errno.h>
 #include <kern/syscall.h>
 #include <lib.h>
 #include <mips/trapframe.h>
-#include <thread.h>
 #include <current.h>
 #include <syscall.h>
 
-
-/*
- * System call dispatcher.
- *
+/**
+ * @brief Dispatches system calls based on the syscall number.
+ * 
+ * @details This function handles system calls invoked by user programs. 
+ * It identifies the syscall using the value in `tf_v0` of the 
+ * provided trapframe and executes the corresponding kernel function. 
+ * System calls may return results in `tf_v0` or signal errors using 
+ * `tf_a3` and error codes.
  * A pointer to the trapframe created during exception entry (in
  * exception-*.S) is passed in.
  *
@@ -74,21 +86,30 @@
  * values) further arguments must be fetched from the user-level
  * stack, starting at sp+16 to skip over the slots for the
  * registerized values, with copyin().
+ * 
+ * @param tf A pointer to the trapframe for the current process. 
+ *           Contains syscall arguments and registers for handling.
+ * 
+ * @note The program counter is incremented by 4 to prevent the syscall 
+ *       from being repeated in an infinite loop.
+ * 
+ * @warning Unknown or unsupported syscalls will return an error.
  */
 void
 syscall(struct trapframe *tf)
 {
-	int callno;
-	int32_t retval;
-	int err;
+    int callno;
+    int32_t retval;
+    int err = 0;
 
-	KASSERT(curthread != NULL);
-	KASSERT(curthread->t_curspl == 0);
-	KASSERT(curthread->t_iplhigh_count == 0);
+    KASSERT(curthread != NULL);
+    KASSERT(curthread->t_curspl == 0);
+    KASSERT(curthread->t_iplhigh_count == 0);
 
-	callno = tf->tf_v0;
+    /* Extract the system call number from the trapframe */
+    callno = tf->tf_v0;
 
-	/*
+    /*
 	 * Initialize retval to 0. Many of the system calls don't
 	 * really return a value, just 0 for success and -1 on
 	 * error. Since retval is the value returned on success,
@@ -96,66 +117,86 @@ syscall(struct trapframe *tf)
 	 * deal with it except for calls that return other values,
 	 * like write.
 	 */
+    retval = 0;
 
-	retval = 0;
+    switch (callno) {
+        case SYS_reboot:
+            /* Handle system reboot */
+            err = sys_reboot(tf->tf_a0);
+            break;
 
-	switch (callno) {
-	    case SYS_reboot:
-		err = sys_reboot(tf->tf_a0);
-		break;
+        case SYS___time:
+            /* Handle time system call */
+            err = sys___time((userptr_t)tf->tf_a0,
+                             (userptr_t)tf->tf_a1);
+            break;
 
-	    case SYS___time:
-		err = sys___time((userptr_t)tf->tf_a0,
-				 (userptr_t)tf->tf_a1);
-		break;
+#if OPT_SYSCALLS
+        case SYS_write:
+            /* Handle write system call */
+            retval = sys_write((int)tf->tf_a0,
+                               (userptr_t)tf->tf_a1,
+                               (size_t)tf->tf_a2);
+            err = (retval < 0) ? ENOSYS : 0;  // Mark as not implemented if retval < 0
+            break;
 
-	    /* Add stuff here */
+        case SYS_read:
+            /* Handle read system call */
+            retval = sys_read((int)tf->tf_a0,
+                              (userptr_t)tf->tf_a1,
+                              (size_t)tf->tf_a2);
+            err = (retval < 0) ? ENOSYS : 0;  // Mark as not implemented if retval < 0
+            break;
 
-	    default:
-		kprintf("Unknown syscall %d\n", callno);
-		err = ENOSYS;
-		break;
-	}
+        case SYS__exit:
+            /* Handle process exit system call */
+            sys__exit((int)tf->tf_a0);
+            break;
+#endif
 
+        default:
+            /* Handle unknown syscall */
+            kprintf("Unknown syscall %d\n", callno);
+            err = ENOSYS;  // Error: function not implemented
+            break;
+    }
 
-	if (err) {
-		/*
-		 * Return the error code. This gets converted at
-		 * userlevel to a return value of -1 and the error
-		 * code in errno.
-		 */
-		tf->tf_v0 = err;
-		tf->tf_a3 = 1;      /* signal an error */
-	}
-	else {
-		/* Success. */
-		tf->tf_v0 = retval;
-		tf->tf_a3 = 0;      /* signal no error */
-	}
+    /* Handle the result of the syscall */
+    if (err) {
+        /* Return an error code */
+        tf->tf_v0 = err;
+        tf->tf_a3 = 1;  // Signal an error
+    } else {
+        /* Return success */
+        tf->tf_v0 = retval;
+        tf->tf_a3 = 0;  // Signal no error
+    }
 
-	/*
-	 * Now, advance the program counter, to avoid restarting
-	 * the syscall over and over again.
-	 */
+    /* Increment program counter to avoid repeated syscall */
+    tf->tf_epc += 4;
 
-	tf->tf_epc += 4;
-
-	/* Make sure the syscall code didn't forget to lower spl */
-	KASSERT(curthread->t_curspl == 0);
-	/* ...or leak any spinlocks */
-	KASSERT(curthread->t_iplhigh_count == 0);
+    /* Ensure kernel consistency */
+    KASSERT(curthread->t_curspl == 0);
+    KASSERT(curthread->t_iplhigh_count == 0);
 }
 
-/*
- * Enter user mode for a newly forked process.
- *
- * This function is provided as a reminder. You need to write
- * both it and the code that calls it.
- *
- * Thus, you can trash it and do things another way if you prefer.
+/**
+ * @brief Enter user mode for a newly forked process.
+ * 
+ * @details This function is a placeholder for transitioning a newly 
+ *          created process into user mode. It should handle setting 
+ *          up the trapframe and any additional state required for the 
+ *          process to execute in user space.
+ * 
+ * @param tf A pointer to the trapframe for the newly forked process.
+ * 
+ * @note The implementation of this function is left as a TODO.
+ * 
+ * @todo Implement the logic for transitioning a forked process 
+ *       into user mode.
  */
 void
 enter_forked_process(struct trapframe *tf)
 {
-	(void)tf;
+    (void)tf;  // Placeholder to avoid unused parameter warning
 }

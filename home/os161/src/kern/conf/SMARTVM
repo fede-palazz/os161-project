@@ -36,3 +36,4 @@ options dumbvm			        # Chewing gum and baling wire.
 #
 # SmartVM options
 #
+options syscalls
