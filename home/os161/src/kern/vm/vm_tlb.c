@@ -1,10 +1,15 @@
-#include <vm_tlb.h>
-
 /**
+ * @file vm_tlb.c
+ * @author L. Mogano
  *
- * This file contains the definitions of the functions for managing the TLB,
- * including invalidation and insertion of entries.
+ * This file implements functions for managing the Translation Lookaside Buffer (TLB),
+ * including insertion, invalidation, and removal of entries. It uses a round-robin 
+ * replacement policy for TLB entries and ensures atomicity by disabling interrupts 
+ * during TLB operations.
+ *
  */
+
+#include <vm_tlb.h>
 
 /**
  * Current TLB victim pointer for replacement policy.
@@ -14,17 +19,21 @@
  */
 int victim = 0;
 
+
 /**
- * Invalidates all TLB entries.
+ * @brief Invalidates all TLB entries.
  *
  * This function iterates through all TLB entries and writes invalid values
  * to them, effectively clearing the TLB. Interrupts are disabled during
  * the operation to ensure atomicity.
  */
-void tlb_invalidate(void) {
+void
+tlb_invalidate(void) {
     int spl, i;
 
     spl = splhigh(); // Disable interrupts
+
+    /* NUM_TLB is the number of TLB entries in the processor (default to 64) */
     for (i = 0; i < NUM_TLB; i++) {
         tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
     }
@@ -32,7 +41,7 @@ void tlb_invalidate(void) {
 }
 
 /**
- *  Inserts a mapping into the TLB.
+ * @brief Inserts a mapping into the TLB.
  *
  * This function writes a mapping between a virtual and physical address into
  * the TLB. The replacement policy uses a round-robin approach. The TLB entry
@@ -42,15 +51,16 @@ void tlb_invalidate(void) {
  * @param paddr Physical address to map.
  * @param ro    Boolean indicating if the mapping is read-only.
  */
-void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
+void
+tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
     int spl;
     uint32_t ehi, elo;
 
     KASSERT((paddr & PAGE_FRAME) == paddr); // Ensure paddr is page-aligned
 
-    spl = splhigh(); // Saved Processor Level spl-> Disable interrupts
-    ehi = vaddr; // Entry High ehi-> Set virtual address
-    elo = paddr | TLBLO_VALID; // Entry Low elo-> Set physical address and valid bit
+    spl = splhigh(); // Saved Processor Level spl -> Disable interrupts
+    ehi = vaddr; // Entry High ehi -> Set virtual address
+    elo = paddr | TLBLO_VALID; // Entry Low elo -> Set physical address and valid bit
     if (!ro) {
         elo = elo | TLBLO_DIRTY; // Set dirty bit if not read-only
     }
@@ -60,7 +70,7 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
 }
 
 /**
- * Removes a TLB entry corresponding to a virtual address.
+ * @brief Removes a TLB entry corresponding to a virtual address.
  *
  * This function searches the TLB for an entry that matches the provided
  * virtual address. If found, it invalidates the entry by writing invalid
@@ -68,10 +78,11 @@ void tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
  *
  * @param vaddr Virtual address whose mapping should be removed.
  */
-void tlb_remove(vaddr_t vaddr)
+void
+tlb_remove(vaddr_t vaddr)
 {
-    int index;
-    index = tlb_probe(vaddr, 0); // to find the index of the TLB entry that matches the virtual address
+    /* find the index of the TLB entry that matches the virtual address */
+    int index = tlb_probe(vaddr, 0); 
     if (index >= 0)
         tlb_write(TLBHI_INVALID(index), TLBLO_INVALID(), index);
 }

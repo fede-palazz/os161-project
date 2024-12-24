@@ -47,29 +47,13 @@ sys__exit(int status)
     /* Retrieve the current process's address space */
     struct addrspace *as = proc_getas();
 
-    /*
-     * Clean up the address space:
-     * 
-     * The address space holds all virtual memory mappings and 
-     * structures specific to the process. Destroying it releases 
-     * the resources associated with this process's memory.
-     */
+    /* Clean up the address space */
     as_destroy(as);
 
-    /*
-     * Terminate the thread:
-     * 
-     * thread_exit() stops the execution of the current thread and
-     * removes it from the system. Since there is no returning 
-     * from this function, any code following it will not be executed.
-     */
+    /* Terminate the thread */
     thread_exit();
 
-    /*
-     * If we ever reach this point, it indicates a severe error.
-     * thread_exit() should never return. We call panic() here
-     * to notify the kernel that something has gone wrong.
-     */
+    /* thread_exit() should never return, something has gone wrong */
     panic("thread_exit returned (should not happen)\n");
 
     /*

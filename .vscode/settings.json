@@ -1,8 +1,14 @@
 {
-    "files.associations": {
-        "autoconf.h": "c",
-        "lib.h": "c",
-        "opt-noasserts.h": "c",
-        "version.h": "c"
-    }
+  "files.associations": {
+    "autoconf.h": "c",
+    "lib.h": "c",
+    "opt-noasserts.h": "c",
+    "version.h": "c"
+  },
+  "editor.formatOnSave": false,
+  "files.exclude": {
+    "**/home/.cache": true,
+    "**/home/.dotnet": true,
+    "**/home/.vscode-server": true,
+  }
 }
