@@ -1,5 +1,5 @@
 /**
- * @file frameTable.c
+ * @file frame_table.c
  * @author A. Squillino
  * @brief Implementation of the frame table for physical memory management.
  * 
@@ -9,7 +9,7 @@
  * and free contiguous blocks of physical frames.
  */
 
-#include <frameTable.h>
+#include <frame_table.h>
 
 vaddr_t firstFreeAddress;             // First free virtual address; set by start.S
 static int nRamFrames = 0;            // Total number of physical RAM frames

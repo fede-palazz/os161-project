@@ -1,5 +1,5 @@
 /**
- * @file frametable.h
+ * @file frame_table.h
  * @author A. Squillino
  * @brief Header file for the frame table, which manages physical memory frames.
  *

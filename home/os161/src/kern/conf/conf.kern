@@ -451,5 +451,9 @@ optfile net	test/nettest.c
 #              Project code            #
 #                                      #
 ########################################
+
 defoption smartvm
 optfile   smartvm    vm/vm_tlb.c
+optfile   smartvm    vm/frame_table.c
+optfile   smartvm    vm/vm.c
+optfile   smartvm    vm/swap.c

@@ -50,6 +50,10 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
+#include "opt-smartvm.h"
+#if OPT_SMARTVM 
+#include <frame_table.h>
+#endif
 
 
 /*
@@ -106,7 +110,11 @@ boot(void)
 	kprintf("\n");
 
 	/* Early initialization. */
+	#if OPT_SMARTVM 
+	frameTableBootstrap();
+	#else
 	ram_bootstrap();
+	#endif
 	proc_bootstrap();
 	thread_bootstrap();
 	hardclock_bootstrap();
