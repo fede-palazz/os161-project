@@ -37,6 +37,8 @@
  */
 
 #include <spinlock.h>
+#include <page_table.h>
+#include "opt-smartvm.h"
 
 struct addrspace;
 struct thread;
@@ -71,6 +73,9 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
+	#if OPT_SMARTVM
+	struct pt_entry *p_ptable; /* Pointer to the process-specific page table */
+	#endif
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */

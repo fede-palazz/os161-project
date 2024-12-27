@@ -457,3 +457,6 @@ optfile   smartvm    vm/vm_tlb.c
 optfile   smartvm    vm/frame_table.c
 optfile   smartvm    vm/vm.c
 optfile   smartvm    vm/swap.c
+optfile   smartvm    vm/page_table.c
+optfile   smartvm    vm/swap.c
+optfile   smartvm    vm/segment.c
