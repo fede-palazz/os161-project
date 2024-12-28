@@ -84,7 +84,7 @@ frame_table_bootstrap() {
  * @return Physical address of the allocated frames, or 0 if no contiguous block is available.
  */
 paddr_t
-frame_table_getppages(int nPages, int kernel) {
+frame_table_getppages(int nPages, char kernel) {
     int end = 0;     // Tracks the end of the current search range
     int start = -1;  // Tracks the start of the current search range
     int i;

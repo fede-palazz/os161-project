@@ -11,6 +11,9 @@
 #ifndef _FRAMETABLE_H_
 #define _FRAMETABLE_H_
 
+#define FRAMETABLE_KERNEL 1
+#define FRAMETABLE_USER 0
+
 #include <lib.h>
 #include <mainbus.h>
 #include <types.h>
@@ -48,7 +51,7 @@ void frame_table_bootstrap(void);
  * @param kernel A flag indicating whether the pages are for kernel (1) or user (0) use.
  * @return The physical address of the first allocated frame, or 0 if no suitable block is available.
  */
-paddr_t frame_table_getppages(int nPages, int kernel);
+paddr_t frame_table_getppages(int nPages, char kernel);
 
 /**
  * @brief Frees previously allocated physical pages.
