@@ -27,9 +27,21 @@
  * SUCH DAMAGE.
  */
 
+#include <types.h>
+#include <kern/errno.h>
+#include <lib.h>
+#include <spl.h>
+#include <cpu.h>
+#include <spinlock.h>
+#include <proc.h>
+#include <current.h>
+#include <mips/tlb.h>
+#include <addrspace.h>
+#include <frame_table.h>
+
 #ifndef _MIPS_VM_H_
 #define _MIPS_VM_H_
-
+#include "opt-smartvm.h"
 
 /*
  * Machine-dependent VM system definitions.
@@ -66,7 +78,9 @@
  * a valid address, and will make a *huge* mess if you scribble on it.
  */
 #define PADDR_TO_KVADDR(paddr) ((paddr)+MIPS_KSEG0)
-
+#if OPT_SMARTVM
+#define KVADDR_TO_PADDR(paddr) ((paddr)-MIPS_KSEG0)
+#endif
 /*
  * The top of user space. (Actually, the address immediately above the
  * last valid user address.)
