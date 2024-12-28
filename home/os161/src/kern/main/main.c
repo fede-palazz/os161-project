@@ -111,7 +111,7 @@ boot(void)
 
 	/* Early initialization. */
 	#if OPT_SMARTVM 
-	frameTableBootstrap();
+	frame_table_bootstrap();
 	#else
 	ram_bootstrap();
 	#endif

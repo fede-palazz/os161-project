@@ -44,7 +44,7 @@ getppages(unsigned long npages, char kernel)
 	paddr_t addr;
 
 	spinlock_acquire(&vm_lock);
-	addr = frame_table_getppages(npages,kernel);
+	addr = frame_table_getppages(npages, kernel);
 	spinlock_release(&vm_lock);
 
 	return addr;

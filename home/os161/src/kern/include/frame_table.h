@@ -35,7 +35,7 @@ struct FrameTableEntry {
  * and initializes the data structures needed to track the usage of physical
  * memory frames.
  */
-void frameTableBootstrap(void);
+void frame_table_bootstrap(void);
 
 /**
  * @brief Allocates a contiguous set of free physical pages.
@@ -48,7 +48,7 @@ void frameTableBootstrap(void);
  * @param kernel A flag indicating whether the pages are for kernel (1) or user (0) use.
  * @return The physical address of the first allocated frame, or 0 if no suitable block is available.
  */
-paddr_t frameTableGetFreePages(int nPages, int kernel);
+paddr_t frame_table_getppages(int nPages, int kernel);
 
 /**
  * @brief Frees previously allocated physical pages.
@@ -58,6 +58,6 @@ paddr_t frameTableGetFreePages(int nPages, int kernel);
  *
  * @param addr The physical address of the first frame to be freed.
  */
-void frameTableFreePages(paddr_t addr);
+void frame_table_freeppages(paddr_t addr);
 
 #endif

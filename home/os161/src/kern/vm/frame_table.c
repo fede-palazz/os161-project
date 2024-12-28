@@ -13,7 +13,7 @@
 
 vaddr_t firstFreeAddress;             // First free virtual address; set by start.S
 static int nRamFrames = 0;            // Total number of physical RAM frames
-struct FrameTableEntry *frameTable;   // Pointer to the frame table
+struct FrameTableEntry* frameTable;   // Pointer to the frame table
 
 /**
  * @brief Initializes the frame table during system bootstrap.
@@ -22,7 +22,7 @@ struct FrameTableEntry *frameTable;   // Pointer to the frame table
  * It identifies reserved regions used by the kernel and marks them as occupied.
  */
 void
-frameTableBootstrap() {
+frame_table_bootstrap() {
     paddr_t firstPhysicalAddr;  // Physical address of the first free page
     paddr_t lastPhysicalAddr;   // Physical address of the last available page
     size_t frameTableSize;      // Total size of the frame table in bytes
@@ -84,7 +84,7 @@ frameTableBootstrap() {
  * @return Physical address of the allocated frames, or 0 if no contiguous block is available.
  */
 paddr_t
-frameTableGetFreePages(int nPages, int kernel) {
+frame_table_getppages(int nPages, int kernel) {
     int end = 0;     // Tracks the end of the current search range
     int start = -1;  // Tracks the start of the current search range
     int i;
@@ -94,7 +94,8 @@ frameTableGetFreePages(int nPages, int kernel) {
         if (frameTable[end].used == 1) {
             start = -1;  // Reset the search range
             end += frameTable[end].allocSize;  // Skip used frames
-        } else {
+        } 
+        else {
             if (start == -1) {
                 start = end;  // Mark the start of a potential block
             }
@@ -132,7 +133,7 @@ frameTableGetFreePages(int nPages, int kernel) {
  * @param addr Physical address of the first frame to free.
  */
 void
-frameTableFreePages(paddr_t addr) {
+frame_table_freeppages(paddr_t addr) {
     long i;
     long first = addr / PAGE_SIZE;  // Index of the first frame in the block
     long allocSize = frameTable[first].allocSize;  // Size of the allocation
