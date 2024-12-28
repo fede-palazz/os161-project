@@ -5,6 +5,7 @@
         "opt-noasserts.h": "c",
         "version.h": "c"
     },
-    "editor.formatOnSave": false,
-    "C_Cpp.errorSquiggles": "disabled"
+    "editor.formatOnSave": true,
+    "C_Cpp.errorSquiggles": "disabled",
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
 }
