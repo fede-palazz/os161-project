@@ -87,8 +87,12 @@ runprogram(char *progname)
 		return result;
 	}
 
-	/* Done with the file now. */
-	vfs_close(v);
+	#if OPT_SMARTVM
+		curproc->p_vnode = v;
+	#else
+		/* Done with the file now. */
+		vfs_close(v);
+	#endif
 
 	/* Define the user stack in the address space */
 	result = as_define_stack(as, &stackptr);
@@ -96,6 +100,13 @@ runprogram(char *progname)
 		/* p_addrspace will go away when curproc is destroyed */
 		return result;
 	}
+
+	#if OPT_SMARTVM
+		result = as_define_pt(as);
+		if (result) {
+			return result;
+		}
+	#endif
 
 	/* Warp to user mode. */
 	enter_new_process(0 /*argc*/, NULL /*userspace addr of argv*/,

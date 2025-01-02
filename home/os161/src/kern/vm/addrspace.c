@@ -107,9 +107,7 @@ as_activate(void)
 		return;
 	}
 
-	/*
-	 * Write this.
-	 */
+	tlb_invalidate();
 }
 
 void
@@ -176,28 +174,6 @@ as_define_region(struct addrspace *as, vaddr_t vaddr, size_t memsize, off_t elf_
 }
 
 int
-as_prepare_load(struct addrspace *as)
-{
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
-	return 0;
-}
-
-int
-as_complete_load(struct addrspace *as)
-{
-	/*
-	 * Write this.
-	 */
-
-	(void)as;
-	return 0;
-}
-
-int
 as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 {
 	as->s_stack->base_vaddr = USERSTACK;
@@ -208,4 +184,5 @@ as_define_stack(struct addrspace *as, vaddr_t *stackptr)
 
 	return 0;
 }
+
 

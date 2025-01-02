@@ -60,6 +60,7 @@
 #include <vnode.h>
 #include <elf.h>
 #include "opt-smartvm.h"
+#include <pt.h>
 
 /*
  * Load a segment at virtual address VADDR. The segment in memory
@@ -75,6 +76,22 @@
  * change this code to not use uiomove, be sure to check for this case
  * explicitly.
  */
+#if OPT_RUDEVM
+	int
+	load_page(struct vnode *v, off_t offset, paddr_t page_paddr)
+	{
+		struct iovec iov;
+		struct uio ku;
+		int result;
+		uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, offset, UIO_READ);
+		result = VOP_READ(v, &ku);
+		if (result)
+		{
+			panic("Error loading page\n");
+		}
+		return 0;
+	}
+#else
 static
 int
 load_segment(struct addrspace *as, struct vnode *v,
@@ -145,6 +162,7 @@ load_segment(struct addrspace *as, struct vnode *v,
 
 	return result;
 }
+#endif
 
 /*
  * Load an ELF executable user program into the current address space.
@@ -244,47 +262,6 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 				return result;
 			}
 		}
-		result = as_prepare_load(as);
-		if (result) {
-			return result;
-		}
-		/*
-		* Now actually load each segment.
-		*/
-		for (i=0; i<eh.e_phnum; i++) {
-			off_t offset = eh.e_phoff + i*eh.e_phentsize;
-			uio_kinit(&iov, &ku, &ph, sizeof(ph), offset, UIO_READ);
-			result = VOP_READ(v, &ku);
-			if (result) {
-				return result;
-			}
-			if (ku.uio_resid != 0) {
-				/* short read; problem with executable? */
-				kprintf("ELF: short read on phdr - file truncated?\n");
-				return ENOEXEC;
-			}
-			switch (ph.p_type) {
-				case PT_NULL: /* skip */ continue;
-				case PT_PHDR: /* skip */ continue;
-				case PT_MIPS_REGINFO: /* skip */ continue;
-				case PT_LOAD: break;
-				default:
-				kprintf("loadelf: unknown segment type %d\n",
-					ph.p_type);
-				return ENOEXEC;
-			}
-			result = load_segment(as, v, ph.p_offset, ph.p_vaddr,
-						ph.p_memsz, ph.p_filesz,
-						ph.p_flags & PF_X);
-			if (result) {
-				return result;
-			}
-		}
-		result = as_complete_load(as);
-		if (result) {
-			return result;
-		}
-		*entrypoint = eh.e_entry;
 		return 0;
 	#else
 

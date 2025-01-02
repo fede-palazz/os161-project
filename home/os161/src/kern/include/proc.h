@@ -38,6 +38,7 @@
 
 #include <spinlock.h>
 #include <page_table.h>
+#include <vfs.h>
 
 struct addrspace;
 struct thread;
@@ -72,7 +73,10 @@ struct proc {
 	struct vnode *p_cwd;		/* current working directory */
 
 	/* add more material here as needed */
-	
+
+	#if OPT_SMARTVM
+		struct vnode *p_vnode;		/* process ELF vnode */
+	#endif
 };
 
 /* This is the process structure for the kernel and for kernel-only threads. */
