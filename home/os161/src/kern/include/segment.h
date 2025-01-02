@@ -39,4 +39,6 @@ struct segment *segment_create(void);
  */
 void segment_define(struct segment *seg, off_t elf_offset, vaddr_t start_vaddr, size_t num_pages); 
 
+void segment_destroy(struct segment *seg);
+
 #endif 

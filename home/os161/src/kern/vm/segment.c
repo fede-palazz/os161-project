@@ -17,8 +17,17 @@ struct segment *segment_create(void){
 void segment_define(struct segment *seg, off_t elf_offset, vaddr_t start_vaddr, size_t num_pages){
 
     KASSERT(seg != NULL);
+    KASSERT(seg->elf_offset == 0);
+    KASSERT(seg->start_vaddr == 0);
+    KASSERT(seg->num_pages == 0);
 
     seg->elf_offset = elf_offset;
     seg->start_vaddr = start_vaddr;
     seg->num_pages = num_pages;
+}
+
+void segment_destroy(struct segment *seg){
+    
+    KASSERT(seg != NULL);
+    kfree(seg);
 }
