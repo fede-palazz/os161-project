@@ -1,5 +1,6 @@
 /* 
  * @file swap.c
+ * @author F. Palazzi
  * 
  * This file implements the functionality for managing the swap file in a virtual memory system. 
  * The swap file is used to temporarily store pages evicted from physical memory, providing
@@ -14,10 +15,8 @@ static struct vnode *swapfile;
 /* Bitmap to track free and occupied pages in the swap file */
 static struct bitmap *swapmap;
 
-/* Flag indicating if the swap subsystem is active */
-static bool swap_active = false;
+static struct spinlock swaplock = SPINLOCK_INITIALIZER;
 
-// TODO: Add a spinlock for thread-safe operations on the swapmap
 
 /**
  * @brief Initializes the swap subsystem.
@@ -26,26 +25,22 @@ static bool swap_active = false;
  * to track free and used pages in the file. It must be called during system initialization.
  */
 void
-swap_init(void)
+swap_bootstrap(void)
 {
     int err;
-    char swapfile_name[16];
+    char swapfile_name[] = SWAP_NAME;
 
     /* Ensure the swap file size is a multiple of the page size */
     KASSERT(SWAP_SIZE % PAGE_SIZE == 0);
 
     /* Open or create the swap file */
-    strcpy(swapfile_name, SWAP_NAME);
-    err = vfs_open(swapfile_name, O_RDWR | O_CREAT, 0, &swapfile);
+    err = vfs_open(swapfile_name, O_RDWR | O_CREAT | O_TRUNC, 0, &swapfile);
     if (err) {
         panic("Cannot open SWAPFILE");
     }
 
     /* Create a bitmap to manage swap file pages */
     swapmap = bitmap_create(SWAP_SIZE / PAGE_SIZE);
-
-    /* Mark the swap subsystem as active */
-    swap_active = true;
 }
 
 /**
@@ -61,29 +56,36 @@ swap_init(void)
 void 
 swap_in(paddr_t page_paddr, unsigned int swap_index)
 {
-    int err;
+   int err;
     off_t swap_offset;
-    struct iovec page_iovec;       // Represents the memory region for the page
-    struct uio page_uio;           // Represents the I/O operation context
+    struct iovec iov;
+    struct uio ku;
 
-    /* Ensure swap subsystem is active and inputs are valid */
-    KASSERT(swap_active);
-    KASSERT(page_paddr % PAGE_SIZE == 0);               // Page-aligned physical address
-    KASSERT(swap_index < SWAP_SIZE / PAGE_SIZE);    // Valid index
-    KASSERT(bitmap_isset(swapmap, swap_index));         // Page must exist in swap file
+#if OPT_STATS
+    vmstats_hit(VMSTAT_PAGE_FAULT_DISK);
+    vmstats_hit(VMSTAT_PAGE_FAULT_SWAP);
+#endif
 
-    /* Calculate the offset in the swap file */
+    KASSERT(page_paddr % PAGE_SIZE == 0);
+    KASSERT(swap_index < SWAPFILE_NPAGES);
+    spinlock_acquire(&swaplock);
+    KASSERT(bitmap_isset(swapmap, swap_index));
+    spinlock_release(&swaplock);
+
     swap_offset = swap_index * PAGE_SIZE;
 
-    /* Perform a read from the swap file into the physical address */
-    uio_kinit(&page_iovec, &page_uio, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, swap_offset, UIO_READ);
-    err = VOP_READ(swapfile, &page_uio);
+    uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, swap_offset, UIO_READ);
+    err = VOP_READ(swapfile, &ku);
     if (err) {
-        panic("Error while swapping in\n");
+        panic("Error swapping in\n");
     }
+    if (ku.uio_resid != 0) {
+		panic("SWAP: short read on page");
+	}
 
-    /* Mark the swap index as free in the bitmap */
+    spinlock_acquire(&swaplock);
     bitmap_unmark(swapmap, swap_index);
+    spinlock_release(&swaplock);
 }
 
 /**
@@ -102,29 +104,60 @@ swap_out(paddr_t page_paddr)
     int err;
     unsigned int swap_index;
     off_t swap_offset;
-    struct iovec page_iovec;       // Represents the memory region for the page
-    struct uio page_uio;           // Represents the I/O operation context
+    struct iovec iov;
+    struct uio ku;
 
-    /* Ensure swap subsystem is active and inputs are valid */
-    KASSERT(swap_active);
-    KASSERT(page_paddr % PAGE_SIZE == 0);  // Page-aligned physical address
+#if OPT_STATS
+    vmstats_hit(VMSTAT_SWAP_WRITE);
+#endif
 
-    /* Allocate a free slot in the swap file bitmap */
+    KASSERT(page_paddr % PAGE_SIZE == 0);
+
+    spinlock_acquire(&swaplock);
     err = bitmap_alloc(swapmap, &swap_index);
-    if (err) {
-        panic("Out of swap space\n");  // No free space in the swap file
+    spinlock_release(&swaplock);
+    if (err)
+    {
+        panic("Out of swap space\n");
     }
 
-    /* Calculate the offset in the swap file */
     swap_offset = swap_index * PAGE_SIZE;
 
-    /* Write the page data to the swap file */
-    uio_kinit(&page_iovec, &page_uio, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, swap_offset, UIO_WRITE);
-    err = VOP_WRITE(swapfile, &page_uio);
-    if (err) {
-        panic("Error while swapping out\n");
+    uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), PAGE_SIZE, swap_offset, UIO_WRITE);
+    err = VOP_WRITE(swapfile, &ku);
+    if (err)
+    {
+        panic("Error swapping out\n");
     }
 
-    /* Return the index where the page was stored */
     return swap_index;
+}
+
+/**
+ * @brief Free a swap slot in the swap file.
+ * 
+ * Marks the specified swap slot as available for future use. This function 
+ * ensures that the swap index provided is valid and safely releases the 
+ * corresponding slot.
+ * 
+ * @param swap_index The index of the swap slot to free.
+ */
+void
+swap_free(unsigned int swap_index) {
+    spinlock_acquire(&swaplock);
+    bitmap_unmark(swapmap, swap_index);
+    spinlock_release(&swaplock);
+}
+
+/**
+ * @brief Clean up and destroy the swap system.
+ * 
+ * Releases all resources associated with the swap system, including the 
+ * swap file and any associated metadata. After this function is called, 
+ * the swap system will no longer be available until reinitialized.
+ */
+void
+swap_destroy(void) {
+    vfs_close(swapfile);
+    bitmap_destroy(swapmap);
 }

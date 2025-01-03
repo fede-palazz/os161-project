@@ -10,19 +10,32 @@
 #define _SWAPFILE_H_
 
 #include <types.h>
+#include <swapfile.h>
 #include <bitmap.h>
 #include <kern/fcntl.h>
 #include <uio.h>
 #include <vfs.h>
+#include <synch.h>
 #include <vm.h>
 #include <vnode.h>
+#include "opt-swap.h"
+#include "opt-stats.h"
+#if OPT_STATS
+#include <vmstats.h>
+#endif
 
+#if OPT_SWAP
 
 /* Size of the swap file in bytes (9 MB) */
 #define SWAP_SIZE 9 * 1024 * 1024
 
+/* Calculated as upper(log_2(SWAPFILE_SIZE/PAGE_SIZE)) */
+#define SWAP_INDEX_SIZE 12 
+
 /* Name of the swap file */
 #define SWAP_NAME "emu0:/SWAPFILE"
+
+#define SWAPFILE_NPAGES SWAPFILE_SIZE/PAGE_SIZE
 
 /**
  * @brief Initializes the swap file system.
@@ -31,7 +44,7 @@
  * for managing swapping operations. It must be called during system initialization
  * before any swap-in or swap-out operations.
  */
-void swap_init(void);
+void swap_bootstrap(void);
 
 /**
  * @brief Loads a page from the swap file into physical memory.
@@ -54,5 +67,26 @@ void swap_in(paddr_t page_paddr, unsigned int swap_index);
  * @return Index in the swap file where the page was stored.
  */
 unsigned int swap_out(paddr_t page_paddr);
+
+/**
+ * @brief Free a swap slot in the swap file.
+ * 
+ * Marks the specified swap slot as available for future use. This function 
+ * ensures that the swap index provided is valid and safely releases the 
+ * corresponding slot.
+ * 
+ * @param swap_index The index of the swap slot to free.
+ */
+void swap_free(unsigned int swap_index);
+
+/**
+ * @brief Clean up and destroy the swap system.
+ * 
+ * Releases all resources associated with the swap system, including the 
+ * swap file and any associated metadata. After this function is called, 
+ * the swap system will no longer be available until reinitialized.
+ */
+void swap_destroy(void);
+
 
 #endif /* _SWAPFILE_H_ */
