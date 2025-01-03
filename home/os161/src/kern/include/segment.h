@@ -14,19 +14,17 @@
 
 #include <types.h>
 #include <lib.h>
+#include <vm.h>
+#include "opt-smartvm.h"
 
+#if OPT_SMARTVM
 
-/**
- * @brief Represents a segment in a program's address space.
- * 
- * This structure stores information about a segment, such as its offset in 
- * the ELF file, the starting virtual address, and the number of pages it 
- * occupies in memory.
- */
 struct segment {
-    off_t elf_offset;       /* Offset of the segment in the ELF file    */
-    vaddr_t start_vaddr;    /* Starting virtual address of the segment  */
-    size_t num_pages;       /* Number of pages occupied by the segment  */
+    vaddr_t seg_first_vaddr;    /*  actual first address of the segment         */
+    vaddr_t seg_last_vaddr;     /*  last address of the segment                 */
+    size_t seg_elf_size;       /*  size of the segment within the elf          */
+    off_t seg_elf_offset;     /*  offset of the segment within the elf        */
+    size_t seg_npages;         /*  size of the segment in pages                */
 };
 
 /**
@@ -37,28 +35,9 @@ struct segment {
  * @return A pointer to the newly created segment, or NULL if allocation fails.
  */
 struct segment *segment_create(void);
-
-/**
- * @brief Defines the properties of an existing segment.
- * 
- * Initializes a segment with specific values, such as the ELF offset, starting 
- * virtual address, and the number of pages it occupies.
- * 
- * @param seg A pointer to the segment structure to be initialized. Must not be NULL.
- * @param elf_offset The ELF file offset for the segment.
- * @param start_vaddr The starting virtual address of the segment.
- * @param num_pages The number of pages in the segment.
- */
-void segment_define(struct segment *seg, off_t elf_offset, vaddr_t start_vaddr, size_t num_pages);
-
-/**
- * @brief Destroys a segment and frees its associated memory.
- * 
- * Deallocates the memory used by a `struct segment` and ensures that all 
- * resources are released.
- * 
- * @param seg A pointer to the segment structure to be destroyed. Must not be NULL.
- */
+void segment_define(struct segment *seg, off_t elf_offset, vaddr_t base_vaddr, vaddr_t first_vaddr, vaddr_t last_vaddr, size_t npages, size_t elfsize); 
 void segment_destroy(struct segment *seg);
+
+#endif /* OPT_SMARTVM */
 
 #endif /* _SEGMENT_H_ */
