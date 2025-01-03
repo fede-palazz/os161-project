@@ -35,4 +35,8 @@ options sfs			            # Always use the file system
 # SmartVM options
 #
 options syscalls
+options waitpid
 options smartvm
+options swap
+options stats
+options noswap_rdonly

@@ -452,11 +452,18 @@ optfile net	test/nettest.c
 #                                      #
 ########################################
 
+defoption waitpid
+
+defoption swap
+optfile   swap      vm/swap.c
+defoption noswap_rdonly
+
 defoption smartvm
 optfile   smartvm    vm/vm_tlb.c
-optfile   smartvm    vm/frame_table.c
+optfile   smartvm    vm/frame_table.c    
 optfile   smartvm    vm/vm.c
-optfile   smartvm    vm/swap.c
 optfile   smartvm    vm/page_table.c
-optfile   smartvm    vm/swap.c
 optfile   smartvm    vm/segment.c
+
+defoption stats
+optfile   stats     vm/vmstats.c
