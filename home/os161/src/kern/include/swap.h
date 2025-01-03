@@ -10,7 +10,6 @@
 #define _SWAPFILE_H_
 
 #include <types.h>
-#include <swapfile.h>
 #include <bitmap.h>
 #include <kern/fcntl.h>
 #include <uio.h>
@@ -88,5 +87,6 @@ void swap_free(unsigned int swap_index);
  */
 void swap_destroy(void);
 
+#endif
 
 #endif /* _SWAPFILE_H_ */

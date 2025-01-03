@@ -11,6 +11,8 @@
 
 #include <frame_table.h>
 
+//void bzero(void *vblock, size_t len);
+
 vaddr_t firstFreeAddress;             // First free virtual address; set by start.S
 struct spinlock ft_spinlock = SPINLOCK_INITIALIZER;
 
@@ -82,7 +84,7 @@ frame_table_bootstrap() {
     }
 
     /* Mark the kernel and frame table regions as used. */
-    for (i = 0; i < kernelPages + frameTablePages; i++) {
+    for (i = 0; i < kernel_pages + frame_table_pages; i++) {
         frameTable[i].ft_used = 1;
         frameTable[i].ft_allocsize = 1;
     }
@@ -196,7 +198,6 @@ frame_table_swapout(int nPages)
 #endif //OPT_SWAP
 
 
-
 /**
  * @brief Allocates a contiguous block of physical frames.
  * 
@@ -254,7 +255,7 @@ void
 frame_table_freeppages(paddr_t addr) {
     long i;
 
-    KASSER(addr % PAGE_SIZE==0);
+    KASSERT(addr % PAGE_SIZE==0);
 
     long first = addr / PAGE_SIZE;  // Index of the first frame in the block
     long allocSize = frameTable[first].ft_allocsize;  // Size of the allocation

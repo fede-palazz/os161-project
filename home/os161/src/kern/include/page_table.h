@@ -9,6 +9,7 @@
 
 #ifndef _PT_H_
 #define _PT_H_
+#include <swap.h>
 #include <proc.h>
 #include <addrspace.h>
 #include <segment.h>
@@ -21,7 +22,6 @@
 #include <segment.h>
 #include <current.h>
 #include <kern/errno.h>
-#include <swap.h>
 #include <vm.h>
 #include "opt-swap.h"
 #include "opt-noswap_rdonly.h"
