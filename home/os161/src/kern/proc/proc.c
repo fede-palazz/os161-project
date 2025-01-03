@@ -48,15 +48,49 @@
 #include <current.h>
 #include <addrspace.h>
 #include <vnode.h>
-
+#include "opt-waitpid.h"
 /*
  * The process for the kernel; this holds all the kernel-only threads.
  */
 struct proc *kproc;
 
+#if OPT_WAITPID
+
+/**
+ * @brief Initialize the waitpid functionality for a process.
+ * 
+ * @param proc The process to initialize.
+ * @param name The name of the process.
+ */
+
+static void
+proc_init_waitpid(struct proc *proc, const char *name) {
+  proc->p_sem = sem_create(name, 0);
+}
+
+/**
+ * @brief Cleanup the waitpid-related resources of a process.
+ * 
+ * @param proc The process to clean up.
+ */
+
+static void
+proc_end_waitpid(struct proc *proc) {
+  sem_destroy(proc->p_sem);
+}
+#endif
+
 /*
  * Create a proc structure.
  */
+
+ /**
+ * @brief Create a new process structure.
+ * 
+ * @param name The name of the process.
+ * @return A pointer to the newly created process or NULL on failure.
+ */
+ 
 static
 struct proc *
 proc_create(const char *name)
@@ -81,6 +115,10 @@ proc_create(const char *name)
 
 	/* VFS fields */
 	proc->p_cwd = NULL;
+
+#if OPT_WAITPID
+	proc_init_waitpid(proc,name);
+#endif
 
 	return proc;
 }
@@ -171,6 +209,10 @@ proc_destroy(struct proc *proc)
 
 	KASSERT(proc->p_numthreads == 0);
 	spinlock_cleanup(&proc->p_lock);
+
+#if OPT_WAITPID
+	proc_end_waitpid(proc);
+#endif
 
 	kfree(proc->p_name);
 	kfree(proc);
@@ -322,3 +364,31 @@ proc_setas(struct addrspace *newas)
 	spinlock_release(&proc->p_lock);
 	return oldas;
 }
+
+
+#if OPT_WAITPID
+
+/**
+ * @brief Wait for a process to complete.
+ * 
+ * @param proc The process to wait for.
+ * @return The exit status of the process.
+ */
+
+int proc_wait(struct proc *proc){
+
+	int return_status;
+	KASSERT(proc != NULL);
+	KASSERT(proc != kproc);
+
+	P(proc -> p_sem);
+	return_status = proc->status;
+	/* 
+	 * destroy the address space of the 
+	 * process after getting the exit status
+	 */
+	proc_destroy(proc);		
+	return return_status;
+
+}
+#endif

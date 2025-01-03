@@ -51,10 +51,16 @@
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
 #include "opt-smartvm.h"
-#if OPT_SMARTVM 
+#include "opt-stats.h"
+#if OPT_SMARTVM
 #include <frame_table.h>
 #endif
-
+#if OPT_STATS
+#include <vmstats.h>
+#endif
+#if OPT_SWAP
+#include <swap.h>
+#endif
 
 /*
  * These two pieces of data are maintained by the makefiles and build system.
@@ -155,8 +161,14 @@ static
 void
 shutdown(void)
 {
-
 	kprintf("Shutting down.\n");
+
+	#if OPT_STATS
+		vmstats_print();
+	#endif
+	#if OPT_SWAP
+		swap_destroy();
+	#endif
 
 	vfs_clearbootfs();
 	vfs_clearcurdir();
