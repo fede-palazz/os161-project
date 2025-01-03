@@ -17,7 +17,7 @@
 #include <lib.h>
 #include <mainbus.h>
 #include <types.h>
-#include <swapfile.h>
+#include <swap.h>
 #include <vm_tlb.h>
 #include <synch.h>
 #include <vm.h>
