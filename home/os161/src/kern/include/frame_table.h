@@ -17,7 +17,16 @@
 #include <lib.h>
 #include <mainbus.h>
 #include <types.h>
+#include <swapfile.h>
+#include <vm_tlb.h>
+#include <synch.h>
 #include <vm.h>
+#include <page_table.h>
+#include "opt-smartvm.h"
+#include "opt-swap.h"
+#include "opt-noswap_rdonly.h"
+
+#if OPT_SMARTVM
 
 /**
  * @struct FrameTableEntry
@@ -26,9 +35,10 @@
  * Each frame table entry describes the state of a physical memory frame.
  */
 struct FrameTableEntry {
-    unsigned int used : 1;       /* Indicates if the frame is in use (1 = used, 0 = free) */
-    unsigned int kernel : 1;     /* Indicates if the frame is reserved for kernel (1 = kernel, 0 = user) */
-    unsigned int allocSize : 16; /* Indicates the size of the allocation (in pages) starting at this frame */
+    unsigned char ft_used : 1;
+    unsigned long ft_allocsize : 20;      
+    unsigned char ft_lock : 1;
+    struct pt_entry *ft_ptentry;            // Page table entry of the page living in this frame, NULL if kernel page
 };
 
 /**
@@ -40,18 +50,8 @@ struct FrameTableEntry {
  */
 void frame_table_bootstrap(void);
 
-/**
- * @brief Allocates a contiguous set of free physical pages.
- *
- * This function searches the frame table for `nPages` contiguous free frames
- * and marks them as allocated. If `kernel` is set to 1, the allocation is
- * marked for kernel use.
- *
- * @param nPages The number of contiguous pages to allocate.
- * @param kernel A flag indicating whether the pages are for kernel (1) or user (0) use.
- * @return The physical address of the first allocated frame, or 0 if no suitable block is available.
- */
-paddr_t frame_table_getppages(int nPages, char kernel);
+
+paddr_t frame_table_getppages(int nPages, struct pt_entry *ptentry);
 
 /**
  * @brief Frees previously allocated physical pages.
@@ -63,4 +63,6 @@ paddr_t frame_table_getppages(int nPages, char kernel);
  */
 void frame_table_freeppages(paddr_t addr);
 
-#endif
+#endif // OPT_SMARTVM 
+
+#endif // _FRAMETABLE_H_ 

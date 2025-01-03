@@ -61,7 +61,7 @@
 #include <vnode.h>
 #include <elf.h>
 #include "opt-smartvm.h"
-#include <pt.h>
+#include <page_table.h>
 
 
 #if OPT_SMARTVM

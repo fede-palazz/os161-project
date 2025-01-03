@@ -41,7 +41,7 @@
 #include <proc.h>
 #include <segment.h>
 #include <vm_tlb.h>
-#include <pt.h>
+#include <page_table.h>
 
 #if OPT_SMARTVM
 #define SEGMENT_TEXT    1
