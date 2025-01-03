@@ -17,8 +17,8 @@
  * This variable keeps track of the index of the next TLB entry to replace,
  * implementing a round-robin replacement policy.
  */
-int victim = 0;
-
+int tlb_victim = 0;
+bool tlb_free = true;
 
 /**
  * @brief Invalidates all TLB entries.
@@ -37,6 +37,12 @@ tlb_invalidate(void) {
     for (i = 0; i < NUM_TLB; i++) {
         tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
     }
+    tlb_victim = 0;
+    tlb_free = true;
+
+#if OPT_STATS
+    vmstats_hit(VMSTAT_TLB_INVALIDATION);
+#endif
     splx(spl); // Restore interrupts
 }
 
@@ -64,25 +70,58 @@ tlb_insert(vaddr_t vaddr, paddr_t paddr, bool ro) {
     if (!ro) {
         elo = elo | TLBLO_DIRTY; // Set dirty bit if not read-only
     }
-    tlb_write(ehi, elo, victim); // Write to TLB
-    victim = (victim + 1) % NUM_TLB; // Update victim index for round-robin
+    tlb_write(ehi, elo, tlb_victim); // Write to TLB
+     tlb_victim = (tlb_victim + 1) % NUM_TLB; // Update victim index for round-robin
+    
+#if OPT_STATS
+    if(tlb_free)
+    {
+	    vmstats_hit(VMSTAT_TLB_FAULT_FREE);
+    }
+    else
+    {
+        vmstats_hit(VMSTAT_TLB_FAULT_REPLACE);
+    }
+#endif
+
+    if(tlb_victim == 0)
+    {
+        tlb_free = false;
+    }
+
     splx(spl); // Restore interrupts
 }
 
 /**
- * @brief Removes a TLB entry corresponding to a virtual address.
- *
- * This function searches the TLB for an entry that matches the provided
- * virtual address. If found, it invalidates the entry by writing invalid
- * values to the matching index.
- *
- * @param vaddr Virtual address whose mapping should be removed.
+ * @brief Removes a TLB entry that matches the given physical address.
+ * 
+ * This function iterates over the TLB entries and invalidates the entry 
+ * corresponding to the provided physical address. It ensures that the 
+ * physical address is aligned to the page size and invalidates the matching entry.
+ * 
+ * @param paddr Physical address of the page to be invalidated.
+ * 
+ * The physical address (`paddr`) must be aligned to the page size.
+ * If a matching entry is found, it will be invalidated in the TLB.
+ * 
  */
-void
-tlb_remove(vaddr_t vaddr)
-{
-    /* find the index of the TLB entry that matches the virtual address */
-    int index = tlb_probe(vaddr, 0); 
-    if (index >= 0)
-        tlb_write(TLBHI_INVALID(index), TLBLO_INVALID(), index);
+void 
+tlb_remove_by_paddr(paddr_t paddr) {
+    // Ensure the physical address is aligned to the page size.
+    KASSERT(paddr % PAGE_SIZE == 0);
+    
+    // Iterate over all TLB entries.
+    for (int i = 0; i < NUM_TLB; i++) {
+        uint32_t ehi, elo;
+        
+        // Read the TLB entry at index i.
+        tlb_read(&ehi, &elo, i);
+        
+        // Check if the physical address matches the current TLB entry.
+        if (paddr == (elo & PAGE_FRAME)) {
+            // Invalidate the matching TLB entry.
+            tlb_write(TLBHI_INVALID(i), TLBLO_INVALID(), i);
+            return;
+        }
+    }
 }
