@@ -36,8 +36,31 @@
  * You'll probably want to add stuff here.
  */
 
-
+#include "opt-smartvm.h"
+#include <page_table.h>
 #include <machine/vm.h>
+
+#include <types.h>
+#include <kern/errno.h>
+#include <lib.h>
+#include <spl.h>
+#include <cpu.h>
+#include <spinlock.h>
+#include <proc.h>
+#include <current.h>
+#include <mips/tlb.h>
+#include <addrspace.h>
+#include <frame_table.h>
+#include <vm_tlb.h>
+#include "syscall.h"
+#include <swap.h>
+#include "opt-stats.h"
+#include "opt-noswap_rdonly.h"
+
+#if OPT_STATS
+#include <vmstats.h>
+#endif
+
 
 /* Fault-type arguments to vm_fault() */
 #define VM_FAULT_READ        0    /* A read was attempted */
@@ -54,6 +77,12 @@ int vm_fault(int faulttype, vaddr_t faultaddress);
 /* Allocate/free kernel heap pages (called by kmalloc/kfree) */
 vaddr_t alloc_kpages(unsigned npages);
 void free_kpages(vaddr_t addr);
+
+#if OPT_RUDEVM
+    /* Allocate/free user pages */
+    void    free_upage(paddr_t addr);
+    paddr_t alloc_upage(struct pt_entry *pt_row);
+#endif
 
 /* TLB shootdown handling called from interprocessor_interrupt */
 void vm_tlbshootdown(const struct tlbshootdown *);
