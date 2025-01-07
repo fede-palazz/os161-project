@@ -9,13 +9,13 @@
 
 #ifndef _PT_H_
 #define _PT_H_
+#include <types.h>
 #include <swap.h>
 #include <proc.h>
 #include <addrspace.h>
 #include <segment.h>
 #include <current.h>
 #include <kern/errno.h>
-#include <types.h>
 #include "opt-smartvm.h"
 #include <proc.h>
 #include <addrspace.h>
@@ -54,15 +54,15 @@
  * The size of `swap_index` varies depending on the optional swap feature.
  */
 struct pt_entry {
-    unsigned int    pt_frame_index : 20;  /**< Physical frame index of the page */
+    unsigned int    pt_frame_index : 20;  /* Physical frame index of the page */
     
     #if OPT_SWAP
-        unsigned int    pt_swap_index : SWAP_INDEX_SIZE; /**< Swap index (variable size with swap enabled) */
+        unsigned int    pt_swap_index : 12; //SWAP_INDEX_SIZE; /* Swap index (variable size with swap enabled) */
     #else
-        unsigned int    pt_swap_index : 12; /**< Swap index (default size if swap is not enabled) */
+        unsigned int    pt_swap_index : 12; /* Swap index (default size if swap is not enabled) */
     #endif
 
-    unsigned char   pt_status : 2;  /**< Current status of the page (e.g., IN_MEMORY) */
+    unsigned char   pt_status : 2;  /* Current status of the page (e.g., IN_MEMORY) */
 };
 
 /**

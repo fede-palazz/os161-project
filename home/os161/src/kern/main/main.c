@@ -163,9 +163,9 @@ shutdown(void)
 {
 	kprintf("Shutting down.\n");
 
-	//#if OPT_STATS
+	#if OPT_STATS
 		vmstats_print();
-	//#endif
+	#endif
 	#if OPT_SWAP
 		swap_destroy();
 	#endif

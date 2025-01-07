@@ -4,9 +4,6 @@
 /* under vm, always have 72k of user stack */
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
 
-
-static struct spinlock vm_lock = SPINLOCK_INITIALIZER;
-
 void
 vm_bootstrap(void)
 {
@@ -37,7 +34,7 @@ vm_can_sleep(void)
  * @brief Allocate physical pages.
  * 
  * @param npages Number of pages to allocate.
- * @param kernel Indicates whether the allocation is for the kernel or user.
+ * @param ptentry Pointer to the page table entry, NULL if kernel's page.
  * @return paddr_t Physical address of the first page allocated, or 0 on failure.
  */
 static paddr_t
@@ -45,7 +42,7 @@ getppages(unsigned long npages, struct pt_entry *ptentry)
 {
 	paddr_t addr;
 
-	addr = frame_table_getppages(npages, kernel);
+	addr = frame_table_getppages(npages, ptentry);
 	if (addr == 0) {
 		panic("Out of memory");
 	}
@@ -275,4 +272,4 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	return 0;
 }
-#endif /* OPT_RUDEVM */
+#endif /* OPT_SMARTVM */

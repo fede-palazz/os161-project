@@ -11,7 +11,6 @@
 
 #include <frame_table.h>
 
-//void bzero(void *vblock, size_t len);
 
 vaddr_t firstFreeAddress;             // First free virtual address; set by start.S
 struct spinlock ft_spinlock = SPINLOCK_INITIALIZER;
@@ -215,13 +214,11 @@ frame_table_getppages(int nPages, struct pt_entry *ptentry) {
     spinlock_acquire(&ft_spinlock);
 
     beginning = frame_table_findfreeframes(nPages);
-    if (beginning == -1)
-    {
+    if (beginning == -1) {
 
     #if OPT_SWAP
         beginning = frame_table_swapout(nPages);
-        if (beginning == -1)
-        {
+        if (beginning == -1) {
         spinlock_release(&ft_spinlock);
         return 0;
         }
@@ -234,8 +231,7 @@ frame_table_getppages(int nPages, struct pt_entry *ptentry) {
     bzero((void *)PADDR_TO_KVADDR(beginning * PAGE_SIZE), PAGE_SIZE * nPages);
 
     frameTable[beginning].ft_allocsize = nPages;
-    for (i = 0; i < nPages; i++)
-    {
+    for (i = 0; i < nPages; i++) {
         frameTable[beginning + i].ft_used = 1;
         frameTable[beginning + i].ft_ptentry = ptentry;
     }

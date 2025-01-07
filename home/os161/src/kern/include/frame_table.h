@@ -14,9 +14,9 @@
 #define FRAMETABLE_KERNEL 1
 #define FRAMETABLE_USER 0
 
+#include <types.h>
 #include <lib.h>
 #include <mainbus.h>
-#include <types.h>
 #include <swap.h>
 #include <vm_tlb.h>
 #include <synch.h>

@@ -78,7 +78,7 @@ int vm_fault(int faulttype, vaddr_t faultaddress);
 vaddr_t alloc_kpages(unsigned npages);
 void free_kpages(vaddr_t addr);
 
-#if OPT_RUDEVM
+#if OPT_SMARTVM
     /* Allocate/free user pages */
     void    free_upage(paddr_t addr);
     paddr_t alloc_upage(struct pt_entry *pt_row);

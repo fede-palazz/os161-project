@@ -34,7 +34,7 @@
 /* Name of the swap file */
 #define SWAP_NAME "emu0:/SWAPFILE"
 
-#define SWAPFILE_NPAGES SWAPFILE_SIZE/PAGE_SIZE
+#define SWAPFILE_NPAGES SWAP_SIZE/PAGE_SIZE
 
 /**
  * @brief Initializes the swap file system.
