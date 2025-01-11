@@ -58,20 +58,33 @@
 struct proc *kproc;
 
 #if OPT_WAITPID
+/*
+ * Initialize waitpid-specific fields for a process.
+ * @param proc - Pointer to the process structure.
+ * @param name - Name of the semaphore to be created.
+ */
 static void
 proc_init_waitpid(struct proc *proc, const char *name) {
+  // Create a semaphore for waitpid
   proc->p_sem = sem_create(name, 0);
 }
 
 
+/*
+ * Destroy waitpid-specific fields of a process.
+ * @param proc - Pointer to the process structure.
+ */
 static void
 proc_end_waitpid(struct proc *proc) {
+  // Destroy the waitpid semaphore
   sem_destroy(proc->p_sem);
 }
 #endif
 
 /*
  * Create a proc structure.
+ * @param name - Name of the process to be created.
+ * @return Pointer to the created process structure or NULL on failure.
  */
 static
 struct proc *
@@ -79,29 +92,39 @@ proc_create(const char *name)
 {
 	struct proc *proc;
 
+	// Allocate memory for the process structure
 	proc = kmalloc(sizeof(*proc));
 	if (proc == NULL) {
+		// Return NULL if memory allocation fails
 		return NULL;
 	}
+	// Duplicate the process name
 	proc->p_name = kstrdup(name);
 	if (proc->p_name == NULL) {
+		// Free allocated memory if name duplication fails
 		kfree(proc);
 		return NULL;
 	}
 
+	// Initialize thread count to zero
 	proc->p_numthreads = 0;
+	// Initialize the spinlock for process structure
 	spinlock_init(&proc->p_lock);
 
 	/* VM fields */
+	// Initialize address space to NULL
 	proc->p_addrspace = NULL;
 
 	/* VFS fields */
+	// Initialize current working directory to NULL
 	proc->p_cwd = NULL;
 
 #if OPT_WAITPID
+    // Initialize waitpid-related fields if enabled
 	proc_init_waitpid(proc,name);
 #endif
 
+ 	// Return the created process structure
 	return proc;
 }
 
@@ -115,7 +138,8 @@ void
 proc_destroy(struct proc *proc)
 {
 
-#if OPT_RUDEVM
+#if OPT_SMARTVM
+	// Close the vnode if SMARTVM option is enabled
 	vfs_close(proc->p_vnode);
 #endif
 
@@ -127,6 +151,7 @@ proc_destroy(struct proc *proc)
 	 * do, some don't.
 	 */
 
+	// Ensure the process is valid and is not the kernel process
 	KASSERT(proc != NULL);
 	KASSERT(proc != kproc);
 
@@ -138,6 +163,7 @@ proc_destroy(struct proc *proc)
 
 	/* VFS fields */
 	if (proc->p_cwd) {
+		// Decrement the reference count for the directory
 		VOP_DECREF(proc->p_cwd);
 		proc->p_cwd = NULL;
 	}
@@ -180,23 +206,31 @@ proc_destroy(struct proc *proc)
 		struct addrspace *as;
 
 		if (proc == curproc) {
+			// Set the current process's address space to NULL
 			as = proc_setas(NULL);
+			// Deactivate the address space
 			as_deactivate();
 		}
 		else {
+			// Clear the process's address space
 			as = proc->p_addrspace;
 			proc->p_addrspace = NULL;
 		}
+		// Destroy the address space
 		as_destroy(as);
 	}
 
+	// Ensure no threads are associated with the process
 	KASSERT(proc->p_numthreads == 0);
+	// Clean up the spinlock
 	spinlock_cleanup(&proc->p_lock);
 
 #if OPT_WAITPID
+	// Clean up waitpid-related fields if enabled
 	proc_end_waitpid(proc);
 #endif
 
+	// Free the process name and structure
 	kfree(proc->p_name);
 	kfree(proc);
 }
@@ -207,8 +241,10 @@ proc_destroy(struct proc *proc)
 void
 proc_bootstrap(void)
 {
+	// Create the kernel process
 	kproc = proc_create("[kernel]");
 	if (kproc == NULL) {
+		// Panic if kernel process creation fails
 		panic("proc_create for kproc failed\n");
 	}
 }
@@ -218,12 +254,15 @@ proc_bootstrap(void)
  *
  * It will have no address space and will inherit the current
  * process's (that is, the kernel menu's) current directory.
+ * @param name - Name of the process to be created.
+ * @return Pointer to the created process structure or NULL on failure
  */
 struct proc *
 proc_create_runprogram(const char *name)
 {
 	struct proc *newproc;
 
+	// Create a new process
 	newproc = proc_create(name);
 	if (newproc == NULL) {
 		return NULL;
@@ -231,6 +270,7 @@ proc_create_runprogram(const char *name)
 
 	/* VM fields */
 
+	// Initialize the address space to NULL
 	newproc->p_addrspace = NULL;
 
 	/* VFS fields */
@@ -242,7 +282,9 @@ proc_create_runprogram(const char *name)
 	 */
 	spinlock_acquire(&curproc->p_lock);
 	if (curproc->p_cwd != NULL) {
+		// Increment reference count for the current directory
 		VOP_INCREF(curproc->p_cwd);
+		// Set the new process's directory
 		newproc->p_cwd = curproc->p_cwd;
 	}
 	spinlock_release(&curproc->p_lock);
@@ -264,14 +306,19 @@ proc_addthread(struct proc *proc, struct thread *t)
 {
 	int spl;
 
+	// Ensure the thread is not already associated with a process
 	KASSERT(t->t_proc == NULL);
 
 	spinlock_acquire(&proc->p_lock);
+	// Increment the thread count for the process
 	proc->p_numthreads++;
 	spinlock_release(&proc->p_lock);
 
+	// Disable interrupts
 	spl = splhigh();
+	// Associate the thread with the process
 	t->t_proc = proc;
+	// Restore interrupts
 	splx(spl);
 
 	return 0;
@@ -292,16 +339,22 @@ proc_remthread(struct thread *t)
 	struct proc *proc;
 	int spl;
 
+	// Get the process associated with the thread
 	proc = t->t_proc;
 	KASSERT(proc != NULL);
 
 	spinlock_acquire(&proc->p_lock);
+	// Ensure the process has at least one thread
 	KASSERT(proc->p_numthreads > 0);
+	// Decrement the thread count
 	proc->p_numthreads--;
 	spinlock_release(&proc->p_lock);
 
+	// Disable interrupts
 	spl = splhigh();
+	// Remove the thread's association with the process
 	t->t_proc = NULL;
+	// Restore interrupts
 	splx(spl);
 }
 
@@ -316,16 +369,22 @@ proc_remthread(struct thread *t)
 struct addrspace *
 proc_getas(void)
 {
+	// Declare a pointer to hold the address space of the process
 	struct addrspace *as;
+	// Fetch the current process
 	struct proc *proc = curproc;
 
 	if (proc == NULL) {
 		return NULL;
 	}
 
+	// Acquire the spinlock for the process to ensure thread safety
 	spinlock_acquire(&proc->p_lock);
+	// Retrieve the address space of the current process
 	as = proc->p_addrspace;
+	// Release the spinlock after accessing the address space
 	spinlock_release(&proc->p_lock);
+	// Return the retrieved address space
 	return as;
 }
 
@@ -336,14 +395,20 @@ proc_getas(void)
 struct addrspace *
 proc_setas(struct addrspace *newas)
 {
+	// Declare a pointer to store the old address space
 	struct addrspace *oldas;
+	// Fetch the current process
 	struct proc *proc = curproc;
 
 	KASSERT(proc != NULL);
 
+	// Acquire the spinlock for the process to ensure thread safety
 	spinlock_acquire(&proc->p_lock);
+	// Store the current address space
 	oldas = proc->p_addrspace;
+	// Set the new address space for the current process
 	proc->p_addrspace = newas;
+	// Release the spinlock after modifying the address space
 	spinlock_release(&proc->p_lock);
 	return oldas;
 }
@@ -354,11 +419,14 @@ proc_setas(struct addrspace *newas)
 
 int proc_wait(struct proc *proc){
 
+	// Declare a variable to store the return status
 	int return_status;
 	KASSERT(proc != NULL);
 	KASSERT(proc != kproc);
 
+	// Wait for the semaphore associated with the process (block until signaled)
 	P(proc -> p_sem);
+	// Retrieve the exit status of the process
 	return_status = proc->status;
 	/* 
 	 * destroy the address space of the 
