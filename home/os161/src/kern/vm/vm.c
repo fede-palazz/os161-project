@@ -8,28 +8,31 @@
 #include <current.h>
 #include <mips/tlb.h>
 #include <addrspace.h>
-#include <pt.h>
+#include <page_table.h>
 #include <vm.h>
-#include <coremap.h>
+#include <frame_table.h>
 #include <vm_tlb.h>
-#include "opt-rudevm.h"
+#include "opt-smartvm.h"
 #include "syscall.h"
 #include <swapfile.h>
 #include "opt-stats.h"
 #include "opt-noswap_rdonly.h"
 
 #if OPT_STATS
+// Includes definitions for tracking VM statistics.
 #include <vmstats.h>
 #endif
 
-#if OPT_RUDEVM
+#if OPT_SMARTVM
 /* under vm, always have 72k of user stack */
 /* (this must be > 64K so argument blocks of size ARG_MAX will fit) */
 
+// Bootstrap function to initialize VM-related resources during boot
 void
 vm_bootstrap(void)
 {
 #if OPT_SWAP
+// Initialize swap file system if swapping is enabled
 	swap_bootstrap();
 #endif
 }
@@ -45,6 +48,7 @@ static
 void
 vm_can_sleep(void)
 {
+	// Check if the current CPU is initialized
 	if (CURCPU_EXISTS()) {
 		/* must not hold spinlocks */
 		KASSERT(curcpu->c_spinlocks == 0);
@@ -55,7 +59,7 @@ vm_can_sleep(void)
 }
 
 /**
- * @brief get npages from the coremap.
+ * @brief get npages from the frame table.
  * 
  * @param npages 
  * @param ptentry pointer to the pt entry, NULL if kernel's page.
@@ -67,11 +71,14 @@ getppages(unsigned long npages, struct pt_entry *ptentry)
 {
 	paddr_t addr;
 
-	addr = coremap_getppages(npages, ptentry);
+	// Requests physical pages from frame table
+	addr = frame_table_getppages(npages, ptentry);
+	// Check if it is out of memory
 	if (addr == 0) {
 		panic("Out of memory");
 	}
 
+	// Return allocated physical address
 	return addr;
 }
 
@@ -83,25 +90,32 @@ getppages(unsigned long npages, struct pt_entry *ptentry)
 static 
 void
 freeppages(paddr_t addr){
-	coremap_freeppages(addr);
+	// Frees pages in the frame table
+	frame_table_freeppages(addr);
 } 
 
-/* Allocate/free some kernel-space virtual pages */
+/* Allocate/free kernel-space virtual pages */
 vaddr_t
 alloc_kpages(unsigned npages)
 {
 	paddr_t pa;
 
+	// Ensure the current context allows sleeping
 	vm_can_sleep();
+	// Allocate physical pages for kernel use
 	pa = getppages(npages, NULL);
+	// Convert physical address to kernel virtual address
 	return PADDR_TO_KVADDR(pa);
 }
 
+// Frees kernel-space virtual pages
 void
 free_kpages(vaddr_t addr)
 {
 	/* get the physical address */
+	// Convert virtual address to physical address
 	paddr_t pa = KVADDR_TO_PADDR(addr);
+	// Free the physical pages
 	freeppages(pa);
 }
 
@@ -115,9 +129,11 @@ paddr_t
 alloc_upage(struct pt_entry *pt_row){
 	paddr_t pa;
 
+	// Ensure the current context allows sleeping
 	vm_can_sleep();
 	/* the user can alloc one page at a time */
 	pa = getppages(1, pt_row);
+	// Return the physical address of the allocated page
 	return pa;
 }
 
@@ -128,9 +144,11 @@ alloc_upage(struct pt_entry *pt_row){
  */
 
 void free_upage(paddr_t addr){
+	// Free the specified physical page
 	freeppages(addr);
 };
 
+// Handles TLB shootdown requests 
 void
 vm_tlbshootdown(const struct tlbshootdown *ts)
 {
@@ -138,6 +156,7 @@ vm_tlbshootdown(const struct tlbshootdown *ts)
 	panic("vm tried to do tlb shootdown?!\n");
 }
 
+// Handles page faults by resolving the fault and updating the TLB.
 int
 vm_fault(int faulttype, vaddr_t faultaddress)
 {
@@ -149,27 +168,37 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 	vaddr_t basefaultaddr;
 
 #if OPT_STATS
+	// Increment TLB fault statistics
 	vmstats_hit(VMSTAT_TLB_FAULT);
 #endif
 
 	/* Obtain the first address of the page */
+	// Align the fault address to page boundaries
 	basefaultaddr = faultaddress & PAGE_FRAME;
 
+	// Log fault address for debugging
 	DEBUG(DB_VM, "vm: fault: 0x%x\n", faultaddress);
 
+	// Handle different fault types
 	switch (faulttype)
 	{
+		// Write attempted on a read-only page
  	    case VM_FAULT_READONLY:
 			kprintf("vm: got VM_FAULT_READONLY, process killed\n");
+			// Terminate the process with an error code
 			sys__exit(-1);
 			return 0;
+			// Read fault
 	    case VM_FAULT_READ:
+			// Write fault
 	    case VM_FAULT_WRITE:
 			break;
 	    default:
+			// Return invalid argument error
 			return EINVAL;
 	}
 
+	// If no current process exist
 	if (curproc == NULL) {
 		/*
 		 * No process. This is probably a kernel fault early
@@ -179,6 +208,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		return EFAULT;
 	}
 
+	// Retrieve the current process's address space
 	as = proc_getas();
 	if (as == NULL) {
 		/*
@@ -202,16 +232,20 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 		kprintf("vm: got faultaddr out of range, process killed\n");
 		sys__exit(-1);
 	}
+	// Retrieve the page table entry for the fault address
 	pt_row = pt_get_entry(as, faultaddress);
+	// Mark as read-only if in the text segment
 	readonly = seg_type == SEGMENT_TEXT;
+	// Handle the page table entry's current status
 	switch(pt_row->pt_status)
 	{
+		// Page is not in memory
 		case NOT_LOADED:
 			/*	alloc a page				*/
 			page_paddr = alloc_upage(pt_row);
 
 			/**  
-			 * update page table.			
+			 * update page table entry.			
 			 * it is important to do it before as_load_page
 			 * as the pt_entry will be used to retrieve the
 			 * physical address of the page
@@ -221,21 +255,27 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			/*	load the page if needed 	*/
 			if(seg_type != SEGMENT_STACK && as_check_in_elf(as,faultaddress))
 			{
+				// Load the page from the ELF file
 				as_load_page(as,curproc->p_vnode,faultaddress);
 			}
+			
 #if OPT_STATS
 			else
 			{
+				// Track zeroed page allocation
     			vmstats_hit(VMSTAT_PAGE_FAULT_ZERO);
 			}
 #endif
 			break;
 		case IN_MEMORY_RDONLY:
+		// Page is already in memory
 		case IN_MEMORY:
 #if OPT_STATS
+		// Track TLB reload event
     		vmstats_hit(VMSTAT_TLB_RELOAD);
 #endif
 			break;
+		// Page is in swap space
 		case IN_SWAP:
 #if OPT_SWAP
 			/*	alloc the page				*/
@@ -244,7 +284,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			/*	swap it from the elf file into memory	*/
 			swap_in(page_paddr, pt_row->pt_swap_index);
 
-			/* update page table	*/
+			/* update page table entry	*/
 			
 			pt_set_entry(pt_row,page_paddr,0, (OPT_NOSWAP_RDONLY && readonly) ? IN_MEMORY_RDONLY : IN_MEMORY); 
 
@@ -256,6 +296,7 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 			panic("Cannot resolve fault");
 	}
 
+	// Ensure the segment type is valid
 	KASSERT(seg_type != 0);
 
 	/* update tlb	*/
@@ -263,4 +304,4 @@ vm_fault(int faulttype, vaddr_t faultaddress)
 
 	return 0;
 }
-#endif /* OPT_RUDEVM */
+#endif /* OPT_SMARTVM */
