@@ -26,3 +26,5 @@ home/**/*.orig
 # Kernel output files
 home/os161/root/kernel
 home/os161/root/kernel-**
+
+SWAPFILE
