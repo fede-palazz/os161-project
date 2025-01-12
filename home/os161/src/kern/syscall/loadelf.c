@@ -66,13 +66,12 @@
 
 #if OPT_SMARTVM
 /**
- * @brief load a page from the elf file to the physical address page_paddr
+ * @brief Load a page from the ELF file to the specified physical address
  * 
- * @param v vnode of the elf
- * @param offset offsett within the elf
- * @param page_paddr target physical address for the coming page
- * @param size size of the page
- * @return int 
+ * @param v ELF's vnode
+ * @param offset Offset within the ELF file
+ * @param page_paddr Physical memory address where the page has to be loaded
+ * @param size Page size
  */
 void
 load_page(struct vnode *v, off_t offset, paddr_t page_paddr, size_t size)
@@ -81,15 +80,19 @@ load_page(struct vnode *v, off_t offset, paddr_t page_paddr, size_t size)
     struct uio ku;
 	int result;
 
+	//Initialize kernel-mode IO structure for reading
 	uio_kinit(&iov, &ku, (void *)PADDR_TO_KVADDR(page_paddr), size, offset, UIO_READ);
+
+	//Read from vnode into the memory at page_paddr
     result = VOP_READ(v, &ku);
     if (result)
     {
         panic("Error loading page\n");
     }
 
+	//Ensure entire reading of the page
 	if (ku.uio_resid != 0) {
-		/* short read; problem with executable? */
+		//Short read; ELF file may be corrupted*/
 		panic("ELF: short read on segment - file truncated?");
 	}
 
@@ -280,16 +283,19 @@ load_elf(struct vnode *v, vaddr_t *entrypoint)
 		}
 
 #if OPT_SMARTVM
+
 		result = as_define_region(as,
-					  ph.p_vaddr, ph.p_memsz,
-					  ph.p_offset,
-					  ph.p_filesz);
+					  ph.p_vaddr,	//vaddr of the segment
+					  ph.p_memsz,	//Size of the segment in memory	
+					  ph.p_offset,	//Offset within the ELF
+					  ph.p_filesz);	//Size of the segment in the ELF
 #else
 		result = as_define_region(as,
-					  ph.p_vaddr, ph.p_memsz,
-					  ph.p_flags & PF_R,
-					  ph.p_flags & PF_W,
-					  ph.p_flags & PF_X);
+					  ph.p_vaddr,     // Virtual address of the segment
+                	  ph.p_memsz,     // Size of the segment in memory
+                      ph.p_flags & PF_R, // Read permission
+                      ph.p_flags & PF_W, // Write permission
+                	  ph.p_flags & PF_X); // Execute permission
 #endif
 
 		if (result) {

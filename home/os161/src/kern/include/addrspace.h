@@ -64,10 +64,10 @@ struct addrspace {
         size_t as_npages2;
         paddr_t as_stackpbase;
 #elif OPT_SMARTVM
-        struct segment  *as_text;
-        struct segment  *as_data;
-        struct segment  *as_stack;
-	struct pt_entry *as_ptable;
+        struct segment  *as_text;  // Pointer to the segment representing the text region.
+        struct segment  *as_data;  // Pointer to the segment representing the data region.
+        struct segment  *as_stack; // Pointer to the segment representing the stack.
+        struct pt_entry *as_ptable; // Pointer to the page table.
 #endif
 };
 
@@ -113,33 +113,37 @@ struct addrspace {
  */
 
 struct addrspace *as_create(void);
-int               as_copy(struct addrspace *src, struct addrspace **ret);
-void              as_activate(void);
-void              as_deactivate(void);
-void              as_destroy(struct addrspace *);
+int as_copy(struct addrspace *src, struct addrspace **ret);
+void as_activate(void);
+void as_deactivate(void);
+void as_destroy(struct addrspace *);
 
 #if OPT_SMARTVM
-int               as_define_region(struct addrspace *as,
-                                   vaddr_t vaddr, size_t sz,
-                                   off_t elf_offset,
-                                   size_t elfsize);
+int as_define_region(struct addrspace *as, 
+                        vaddr_t vaddr, 
+                        size_t sz,
+                        off_t elf_offset,
+                        size_t elfsize
+                        );
 #else
-int               as_define_region(struct addrspace *as,
-                                   vaddr_t vaddr, size_t sz,
-                                   int readable,
-                                   int writeable,
-                                   int executable);
+int as_define_region(struct addrspace *as,
+                        vaddr_t vaddr, 
+                        size_t sz,
+                        int readable,
+                        int writeable,
+                        int executable
+                        );
 #endif
 
-int               as_prepare_load(struct addrspace *as);
-int               as_complete_load(struct addrspace *as);
-int               as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
+int as_prepare_load(struct addrspace *as);
+int as_complete_load(struct addrspace *as);
+int as_define_stack(struct addrspace *as, vaddr_t *initstackptr);
 
 #if OPT_SMARTVM
-int               as_define_pt(struct addrspace *as);
-int               as_get_segment_type(struct addrspace *as, vaddr_t vaddr);
-bool              as_check_in_elf(struct addrspace *as, vaddr_t vaddr);
-int               as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress);
+int as_define_pt(struct addrspace *as);
+int as_get_segment_type(struct addrspace *as, vaddr_t vaddr);
+bool as_check_in_elf(struct addrspace *as, vaddr_t vaddr);
+int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress);
 #endif
 
 /*
