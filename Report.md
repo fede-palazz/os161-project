@@ -1,4 +1,4 @@
-# OS161 Project C1 Group 10 
+# OS161 Project C1 Group 10
 
 ## Index
 
@@ -370,7 +370,7 @@ int as_get_segment_type(struct addrspace *as, vaddr_t vaddr) {
     if (vaddr >= as->as_stack->seg_first_vaddr && vaddr < as->as_stack->seg_last_vaddr) {
         return SEGMENT_STACK;
     }
-
+    
     return 0;
 }
 
@@ -386,7 +386,7 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr) {
     unsigned int pt_index;
 
     KASSERT(as != NULL);
-
+    
     switch (as_get_segment_type(as, vaddr)) {
         case SEGMENT_TEXT:
             pt_index = (vaddr - (as->as_text->seg_first_vaddr & PAGE_FRAME)) / PAGE_SIZE;
@@ -405,7 +405,7 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr) {
         default:
             panic("Invalid segment type! (pt_get_index)");
     }
-
+    
     return 0;
 }
 
@@ -607,33 +607,33 @@ Then we created a script (`execute_tests.py`) to automatically execute all the u
 
 ### 9.1 - User programs
 
-| RAM: 512K                 | palin  | huge   | sort   | matmult | hugematmult1 | hugematmult2 | ctest  |
-| ------------------------- | ------ | ------ | ------ | ------- | ------------ | ------------ | ------ |
-| Execution time            | 15.541 | 39.080 | 20.864 | 7.4875  | 56.832       | -            | 1464.0 |
-| TLB Faults                | 13986  | 7458   | 6720   | 4341    | 64464        | -            | 248545 |
-| TLB Faults with Free      | 13986  | 7439   | 6578   | 4319    | 64446        | -            | 248530 |
-| TLB Faults with Replace   | 0      | 19     | 142    | 22      | 18           | -            | 15     |
-| TLB Invalidations         | 7824   | 6697   | 2979   | 1218    | 8771         | -            | 247943 |
-| TLB Reloads               | 13981  | 3879   | 5055   | 3533    | 58866        | -            | 123624 |
-| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350         | -            | 257    |
-| Page Faults (Disk)        | 4      | 3067   | 1376   | 428     | 3248         | -            | 124664 |
-| Page Faults from ELF      | 4      | 58     | 25     | 13      | 78           | -            | 1605   |
-| Page Faults from Swapfile | 0      | 3009   | 1351   | 415     | 3170         | -            | 123059 |
-| Swapfile Writes           | 0      | 3451   | 1567   | 721     | 5450         | -            | 123242 |
+| RAM: 512K                 | palin  | huge   | sort   | matmult | matmult1 | matmult2 | ctest  |
+| ------------------------- | ------ | ------ | ------ | ------- | -------- | -------- | ------ |
+| Execution time            | 15.541 | 39.080 | 20.864 | 7.4875  | 56.832   | -        | 1464.0 |
+| TLB Faults                | 13986  | 7458   | 6720   | 4341    | 64464    | -        | 248545 |
+| TLB Faults with Free      | 13986  | 7439   | 6578   | 4319    | 64446    | -        | 248530 |
+| TLB Faults with Replace   | 0      | 19     | 142    | 22      | 18       | -        | 15     |
+| TLB Invalidations         | 7824   | 6697   | 2979   | 1218    | 8771     | -        | 247943 |
+| TLB Reloads               | 13981  | 3879   | 5055   | 3533    | 58866    | -        | 123624 |
+| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350     | -        | 257    |
+| Page Faults (Disk)        | 4      | 3067   | 1376   | 428     | 3248     | -        | 124664 |
+| Page Faults from ELF      | 4      | 58     | 25     | 13      | 78       | -        | 1605   |
+| Page Faults from Swapfile | 0      | 3009   | 1351   | 415     | 3170     | -        | 123059 |
+| Swapfile Writes           | 0      | 3451   | 1567   | 721     | 5450     | -        | 123242 |
 
-| RAM: 4M                   | palin  | huge   | sort   | matmult | hugematmult1 | hugematmult2 | ctest  |
-| ------------------------- | ------ | ------ | ------ | ------- | ------------ | ------------ | ------ |
-| Execution time            | 15.487 | 0.9164 | 3.4657 | 0.6779  | 42.957       | 56.902       | 7.3881 |
-| TLB Faults                | 13897  | 4002   | 2008   | 947     | 38331        | 60192        | 125333 |
-| TLB Faults with Free      | 13897  | 778    | 122    | 191     | 37010        | 58785        | 151    |
-| TLB Faults with Replace   | 0      | 3224   | 1886   | 756     | 1321         | 1407         | 125182 |
-| TLB Invalidations         | 7797   | 182    | 40     | 72      | 6213         | 8154         | 40     |
-| TLB Reloads               | 13892  | 3487   | 1715   | 564     | 33600        | 54176        | 125073 |
-| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350         | 2977         | 257    |
-| Page Faults (Disk)        | 4      | 3      | 4      | 3       | 2381         | 3039         | 3      |
-| Page Faults from ELF      | 4      | 3      | 4      | 3       | 7            | 9            | 3      |
-| Page Faults from Swapfile | 0      | 0      | 0      | 0       | 2374         | 3030         | 0      |
-| Swapfile Writes           | 0      | 0      | 0      | 0       | 3759         | 5043         | 0      |
+| RAM: 4M                   | palin  | huge  | sort  | matmult | matmult1 | matmult2 | ctest  |
+| ------------------------- | ------ | ----- | ----- | ------- | -------- | -------- | ------ |
+| Execution time (s)        | 15.384 | 0.888 | 3.465 | 0.6779  | 39.689   | 56.906   | 7.388  |
+| TLB Faults                | 13862  | 3991  | 2008  | 947     | 34364    | 60193    | 125333 |
+| TLB Faults with Free      | 13862  | 767   | 122   | 191     | 33044    | 58786    | 151    |
+| TLB Faults with Replace   | 0      | 3224  | 1886  | 756     | 1320     | 1407     | 125182 |
+| TLB Invalidations         | 7764   | 172   | 40    | 72      | 5747     | 8155     | 40     |
+| TLB Reloads               | 13857  | 3476  | 1715  | 564     | 29942    | 54177    | 125073 |
+| Page Faults (Zeroed)      | 1      | 512   | 289   | 380     | 2196     | 2977     | 257    |
+| Page Faults (Disk)        | 4      | 3     | 4     | 3       | 2226     | 3039     | 3      |
+| Page Faults from ELF      | 4      | 3     | 4     | 3       | 7        | 9        | 3      |
+| Page Faults from Swapfile | 0      | 0     | 0     | 0       | 2219     | 3030     | 0      |
+| Swapfile Writes           | 0      | 0     | 0     | 0       | 3450     | 5043     | 0      |
 
 ### 9.2 - Kernel tests
 
