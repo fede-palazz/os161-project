@@ -10,182 +10,199 @@
 #include "opt-noswap_rdonly.h"
 
 /**
- * The page table is an array of entries where each of them 
- * contains information for the location of the physical page:
- * it can be in memory, in the swap file, and it can be still 
- * not loaded, thus we have to retrieve it from the elf file 
- * (this is the reason why we also save the elf offset for each 
- * segment) .
+ * @file pt.c
+ * @brief Implements page table management for the virtual memory system.
  * 
- * Since the address space contains a large number of pages 
- * which don't belong to a segment, the page table does not have an
- * entry for them in order to not waste memory.
- * It means that the virtual address in the page table 
- * IS NOT computed as index * PAGE_SIZE.
+ * The page table is a critical data structure for translating virtual addresses 
+ * to physical addresses. Each entry in the page table describes the location 
+ * of a corresponding page, which may reside in physical memory, in the swap file, 
+ * or not yet be loaded (requiring retrieval from the ELF file). 
  * 
- * We can think the page table as divided in three different section, 
- * each of them dedicated to one segment, and starting from the virtual
- * address we want to translate, we have to exploit the information
- * in the address space structure to discover the segment from which the
- * address belongs to, and then substract the base_vaddr and the number
- * of page dedicated to the previous segments in the page table to retrieve 
- * the index.
- * 
- * 
+ * The page table only contains entries for pages within text, data, and stack 
+ * segments of the address space, which minimizes memory usage. Consequently, 
+ * virtual addresses cannot be directly mapped to page table indices without 
+ * segment-specific logic.
  */
-
-
-
 
 /**
- * @brief Compute the page table index of the virtual address.
+ * @brief Computes the page table index for a given virtual address.
  * 
- * Check the segment from which the vaddr belongs to. 
+ * Determines the segment to which the virtual address belongs and calculates 
+ * the page table index based on the segment's base address and the number of 
+ * pages in preceding segments.
  * 
- * It has to take into account the logic behind the page table, as 
- * only the page of the address space that belong to a segment are 
- * considered in the page table. 
- *  
- * 
- * @param as address space
- * @param vaddr virtual address
- * @return int page table index
+ * @param as The address space structure.
+ * @param vaddr The virtual address for which the page table index is needed.
+ * @return int The computed page table index.
  */
-static int pt_get_index(struct addrspace *as, vaddr_t vaddr){
+static int pt_get_index(struct addrspace *as, vaddr_t vaddr) {
     unsigned int pt_index;
-    
+
     KASSERT(as != NULL);
 
-    switch(as_get_segment_type(as,vaddr)){
+    // Determine the segment type to which the virtual address belongs
+    switch (as_get_segment_type(as, vaddr)) {
         case SEGMENT_TEXT:
-            pt_index = ( vaddr - (as->as_text->seg_first_vaddr & PAGE_FRAME) ) / PAGE_SIZE;
-            KASSERT(pt_index < as->as_text->seg_npages);
+            // Calculate the index relative to the text segment's base address
+            pt_index = (vaddr - (as->as_text->seg_first_vaddr & PAGE_FRAME)) / PAGE_SIZE;
+            KASSERT(pt_index < as->as_text->seg_npages); // Ensure the index is valid
             return pt_index;
+
         case SEGMENT_DATA:
-            pt_index = as->as_text->seg_npages + ( vaddr - (as->as_data->seg_first_vaddr & PAGE_FRAME) ) / PAGE_SIZE;
-            KASSERT(pt_index <  as->as_text->seg_npages + as->as_data->seg_npages);
+            // Calculate the index relative to the data segment, including text pages
+            pt_index = as->as_text->seg_npages + 
+                       (vaddr - (as->as_data->seg_first_vaddr & PAGE_FRAME)) / PAGE_SIZE;
+            KASSERT(pt_index < as->as_text->seg_npages + as->as_data->seg_npages);
             return pt_index;
+
         case SEGMENT_STACK:
-            pt_index = as->as_data->seg_npages + as->as_text->seg_npages + (vaddr - (as->as_stack->seg_first_vaddr & PAGE_FRAME) ) / PAGE_SIZE ;
-            KASSERT(pt_index <  as->as_data->seg_npages + as->as_text->seg_npages + as->as_stack->seg_npages);
+            // Calculate the index relative to the stack segment, including text and data pages
+            pt_index = as->as_data->seg_npages + 
+                       as->as_text->seg_npages + 
+                       (vaddr - (as->as_stack->seg_first_vaddr & PAGE_FRAME)) / PAGE_SIZE;
+            KASSERT(pt_index < as->as_data->seg_npages + 
+                    as->as_text->seg_npages + 
+                    as->as_stack->seg_npages);
             return pt_index;
-        default :
-            panic("invalid segment type! (pt_get_index)");
+
+        default:
+            panic("Invalid segment type in pt_get_index!");
     }
-    
-    return 0;
+
+    return 0; // This should never be reached
 }
 
 /**
- * @brief allocates the page table and initializes it.
+ * @brief Allocates and initializes the page table.
  * 
- * @param pagetable_size 
- * @return struct pt_entry* 
+ * Creates a page table with the specified number of entries and initializes 
+ * each entry with default values (not loaded, no associated physical frame 
+ * or swap index).
+ * 
+ * @param pagetable_size The number of entries in the page table.
+ * @return struct pt_entry* Pointer to the allocated page table, or NULL on failure.
  */
-struct pt_entry *pt_create(unsigned long pagetable_size)
-{
+struct pt_entry *pt_create(unsigned long pagetable_size) {
     unsigned long i = 0;
 
+    // Allocate memory for the page table
     struct pt_entry *pt = kmalloc(sizeof(struct pt_entry) * pagetable_size);
-
-    if (pt == NULL)
-    {
-        return NULL;
+    if (pt == NULL) {
+        return NULL; // Return NULL if memory allocation fails
     }
 
-
-    for (i = 0; i < pagetable_size; i++)
-    {
-        pt[i].pt_frame_index = 0;
-        pt[i].pt_swap_index = 0;
-        pt[i].pt_status = NOT_LOADED;
+    // Initialize each page table entry to default values
+    for (i = 0; i < pagetable_size; i++) {
+        pt[i].pt_frame_index = 0;    // No associated physical frame
+        pt[i].pt_swap_index = 0;     // No associated swap file index
+        pt[i].pt_status = NOT_LOADED; // Mark as not loaded
     }
 
     return pt;
 }
 
 /**
- * @brief retrieve the pointer to the page table entry for the given virtual address
+ * @brief Retrieves the page table entry for a given virtual address.
  * 
- * @param as 
- * @param vaddr 
- * @return struct pt_entry* 
+ * Uses the page table index computation to locate the corresponding page 
+ * table entry for the specified virtual address.
+ * 
+ * @param as The address space structure.
+ * @param vaddr The virtual address for which the page table entry is needed.
+ * @return struct pt_entry* Pointer to the corresponding page table entry.
  */
-struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr)
-{
+struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr) {
     KASSERT(as != NULL);
-    
+
+    // Compute the page table index for the given virtual address
     int pt_index = pt_get_index(as, vaddr);
-    
+
+    // Return the pointer to the page table entry
     return &as->as_ptable[pt_index];
 }
 
 /**
- * @brief deallocates the page table. Beaware of calling pt_empty before this
- * to not waste memory.
+ * @brief Deallocates the page table.
  * 
- * @param entry 
+ * Frees the memory allocated for the page table. Ensure that `pt_empty` 
+ * has been called beforehand to release all associated physical and 
+ * swap resources.
+ * 
+ * @param entry Pointer to the page table.
  */
-void pt_destroy(struct pt_entry* entry) 
-{
+void pt_destroy(struct pt_entry *entry) {
     KASSERT(entry != NULL);
-    kfree(entry);
+    kfree(entry); // Free the memory allocated for the page table
 }
 
 /**
- * @brief deallocates both the pages in memory and the pages 
- * in the swap file.
+ * @brief Frees all pages in memory and the swap file associated with the page table.
  * 
- * @param pt 
- * @param size 
+ * Iterates through the page table and deallocates resources (physical memory 
+ * or swap space) based on the status of each page table entry.
+ * 
+ * @param pt Pointer to the page table.
+ * @param size The number of entries in the page table.
  */
-void pt_empty(struct pt_entry* pt, int size){
+void pt_empty(struct pt_entry *pt, int size) {
     paddr_t paddr;
-    KASSERT(pt != NULL);
-    KASSERT(pt != 0);
 
-    for(int i = 0; i < size; i++){
-        switch (pt[i].pt_status)
-        {
-#if OPT_NOSWAP_RDONLY
-            case IN_MEMORY_RDONLY:
-#endif
+    KASSERT(pt != NULL);
+    KASSERT(size > 0);
+
+    // Iterate through each entry in the page table
+    for (int i = 0; i < size; i++) {
+        switch (pt[i].pt_status) {
+        #if OPT_NOSWAP_RDONLY
+            case IN_MEMORY_RDONLY: // Handle read-only memory pages
+        #endif
             case IN_MEMORY:
-                paddr = ( pt[i].pt_frame_index ) * PAGE_SIZE;
+                // Free the physical page
+                paddr = (pt[i].pt_frame_index) * PAGE_SIZE;
                 free_upage(paddr);
                 break;
+
             case IN_SWAP:
-#if OPT_SWAP       
-                swap_free(pt[i].pt_swap_index);
-#else           
-                panic("SWAP Pages should not exists!");
-#endif
+                #if OPT_SWAP
+                    // Free the swap space associated with this page
+                    swap_free(pt[i].pt_swap_index);
+                #else
+                    panic("Swap pages should not exist!");
+                #endif
                 break;
+
             default:
+                // No action needed for pages that are not loaded
                 break;
         }
     }
-
 }
 
 /**
- * @brief set the given page table entry
+ * @brief Sets the properties of a page table entry.
  * 
- * @param pt_row 
- * @param paddr 
- * @param swap_index 
- * @param status 
+ * Configures a page table entry with the specified physical frame index, 
+ * swap index, and status.
+ * 
+ * @param pt_row Pointer to the page table entry.
+ * @param paddr Physical address of the page frame.
+ * @param swap_index Index in the swap file.
+ * @param status Status of the page (e.g., in memory, in swap, not loaded).
  */
-void pt_set_entry(struct pt_entry *pt_row, paddr_t paddr, unsigned int swap_index, unsigned char status){
-#if OPT_NOSWAP_RDONLY
-    KASSERT(status == IN_MEMORY || status == IN_MEMORY_RDONLY || status == IN_SWAP || status == NOT_LOADED);
-#else
-    KASSERT(status == IN_MEMORY || status == IN_SWAP || status == NOT_LOADED);
-#endif
-    KASSERT(swap_index < 0xfff);     /*  it should be on 12 bit */
+void pt_set_entry(struct pt_entry *pt_row, paddr_t paddr, unsigned int swap_index, unsigned char status) {
+    #if OPT_NOSWAP_RDONLY
+        // Ensure the status is valid
+        KASSERT(status == IN_MEMORY || status == IN_MEMORY_RDONLY || status == IN_SWAP || status == NOT_LOADED);
+    #else
+        KASSERT(status == IN_MEMORY || status == IN_SWAP || status == NOT_LOADED);
+    #endif
 
-    pt_row->pt_frame_index = paddr/PAGE_SIZE;
+    KASSERT(swap_index < 0xfff); // Ensure the swap index is within 12 bits
+
+    // Set the frame index (convert physical address to frame number)
+    pt_row->pt_frame_index = paddr / PAGE_SIZE;
+
+    // Set the swap index and status
     pt_row->pt_swap_index = swap_index;
     pt_row->pt_status = status;
-
 }

@@ -87,7 +87,7 @@ runprogram(char *progname)
 		return result;
 	}
 
-#if OPT_RUDEVM
+#if OPT_SMARTVM
 	curproc->p_vnode = v;
 #else
 	/* Done with the file now. */
@@ -101,7 +101,7 @@ runprogram(char *progname)
 		return result;
 	}
 
-#if OPT_RUDEVM
+#if OPT_SMARTVM
 	result = as_define_pt(as);
 	if (result) {
 		/* p_addrspace will go away when curproc is destroyed */

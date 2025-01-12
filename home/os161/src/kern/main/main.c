@@ -50,9 +50,9 @@
 #include <test.h>
 #include <version.h>
 #include "autoconf.h"  // for pseudoconfig
-#include "opt-rudevm.h"
+#include "opt-smartvm.h"
 #include "opt-stats.h"
-#if OPT_RUDEVM 
+#if OPT_SMARTVM 
 #include <coremap.h>
 #endif
 #if OPT_STATS
@@ -115,7 +115,7 @@ boot(void)
 	kprintf("\n");
 
 	/* Early initialization. */
-#if OPT_RUDEVM 
+#if OPT_SMARTVM 
 	coremap_bootstrap();
 #else
 	ram_bootstrap();
