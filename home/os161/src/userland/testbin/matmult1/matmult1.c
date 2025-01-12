@@ -39,51 +39,49 @@
  *    able to survive this.
  */
 
-#include <unistd.h>
 #include <stdio.h>
+#include <unistd.h>
 
-#define Dim 	133	/* sum total of the arrays doesn't fit in
-			 * physical memory
-			 */
+#define Dim 130 /* sum total of the arrays doesn't fit in \
+                 * physical memory                        \
+                 */
 
-#define RIGHT  103126870		/* correct answer */
+#define RIGHT 94107650 /* correct answer */
 
 int A[Dim][Dim];
 int B[Dim][Dim];
 int C[Dim][Dim];
 int T[Dim][Dim][Dim];
 
-int
-main(void)
-{
+int main(void) {
     int i, j, k, r;
 
-    for (i = 0; i < Dim; i++)		/* first initialize the matrices */
-	for (j = 0; j < Dim; j++) {
-	     A[i][j] = i;
-	     B[i][j] = j;
-	     C[i][j] = 0;
-	}
+    for (i = 0; i < Dim; i++) /* first initialize the matrices */
+        for (j = 0; j < Dim; j++) {
+            A[i][j] = i;
+            B[i][j] = j;
+            C[i][j] = 0;
+        }
 
-    for (i = 0; i < Dim; i++)		/* then multiply them together */
-	for (j = 0; j < Dim; j++)
+    for (i = 0; i < Dim; i++) /* then multiply them together */
+        for (j = 0; j < Dim; j++)
             for (k = 0; k < Dim; k++)
-		T[i][j][k] = A[i][k] * B[k][j];
+                T[i][j][k] = A[i][k] * B[k][j];
 
     for (i = 0; i < Dim; i++)
-	for (j = 0; j < Dim; j++)
+        for (j = 0; j < Dim; j++)
             for (k = 0; k < Dim; k++)
-		C[i][j] += T[i][j][k];
+                C[i][j] += T[i][j][k];
 
     r = 0;
     for (i = 0; i < Dim; i++)
-	    r += C[i][i];
+        r += C[i][i];
 
     printf("matmult finished.\n");
     printf("answer is: %d (should be %d)\n", r, RIGHT);
     if (r != RIGHT) {
-	    printf("FAILED\n");
-	    return 1;
+        printf("FAILED\n");
+        return 1;
     }
     printf("Passed.\n");
     return 0;

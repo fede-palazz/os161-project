@@ -11,7 +11,7 @@ SUBDIRS=add argtest badcall bigexec bigfile bigfork bigseek bloat conman \
 	malloctest matmult multiexec palin parallelvm poisondisk psort \
 	randcall redirect rmdirtest rmtest \
 	sbrktest schedpong sort sparsefile tail tictac triplehuge \
-	triplemat triplesort usemtest zero nosywrite hugematmult1 hugematmult2
+	triplemat triplesort usemtest zero nosywrite matmult1 matmult2
 	
 
 # But not:

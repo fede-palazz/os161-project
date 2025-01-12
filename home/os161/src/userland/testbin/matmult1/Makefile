@@ -1,10 +1,10 @@
-# Makefile for hugematmult2
+# Makefile for matmult1
 
 TOP=../../..
 .include "$(TOP)/mk/os161.config.mk"
 
-PROG=hugematmult2
-SRCS=hugematmult2.c
+PROG=matmult1
+SRCS=matmult1.c
 BINDIR=/testbin
 
 
