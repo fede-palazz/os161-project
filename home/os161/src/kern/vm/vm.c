@@ -8,9 +8,9 @@
 #include <current.h>
 #include <mips/tlb.h>
 #include <addrspace.h>
-#include <page_table.h>
+#include <pt.h>
 #include <vm.h>
-#include <frame_table.h>
+#include <coremap.h>
 #include <vm_tlb.h>
 #include "opt-smartvm.h"
 #include "syscall.h"
@@ -59,7 +59,7 @@ vm_can_sleep(void)
 }
 
 /**
- * @brief get npages from the frame table.
+ * @brief get npages from the coremap.
  * 
  * @param npages 
  * @param ptentry pointer to the pt entry, NULL if kernel's page.
@@ -71,8 +71,8 @@ getppages(unsigned long npages, struct pt_entry *ptentry)
 {
 	paddr_t addr;
 
-	// Requests physical pages from frame table
-	addr = frame_table_getppages(npages, ptentry);
+	// Requests physical pages from coremap
+	addr = coremap_getppages(npages, ptentry);
 	// Check if it is out of memory
 	if (addr == 0) {
 		panic("Out of memory");
@@ -90,8 +90,8 @@ getppages(unsigned long npages, struct pt_entry *ptentry)
 static 
 void
 freeppages(paddr_t addr){
-	// Frees pages in the frame table
-	frame_table_freeppages(addr);
+	// Frees pages in the coremap
+	coremap_freeppages(addr);
 } 
 
 /* Allocate/free kernel-space virtual pages */
@@ -112,7 +112,6 @@ alloc_kpages(unsigned npages)
 void
 free_kpages(vaddr_t addr)
 {
-	/* get the physical address */
 	// Convert virtual address to physical address
 	paddr_t pa = KVADDR_TO_PADDR(addr);
 	// Free the physical pages

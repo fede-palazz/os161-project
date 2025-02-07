@@ -79,20 +79,20 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr) {
  * each entry with default values (not loaded, no associated physical frame 
  * or swap index).
  * 
- * @param pagetable_size The number of entries in the page table.
+ * @param size The number of entries in the page table.
  * @return struct pt_entry* Pointer to the allocated page table, or NULL on failure.
  */
-struct pt_entry *pt_create(unsigned long pagetable_size) {
+struct pt_entry *pt_create(unsigned long size) {
     unsigned long i = 0;
 
     // Allocate memory for the page table
-    struct pt_entry *pt = kmalloc(sizeof(struct pt_entry) * pagetable_size);
+    struct pt_entry *pt = kmalloc(sizeof(struct pt_entry) * size);
     if (pt == NULL) {
         return NULL; // Return NULL if memory allocation fails
     }
 
     // Initialize each page table entry to default values
-    for (i = 0; i < pagetable_size; i++) {
+    for (i = 0; i < size; i++) {
         pt[i].pt_frame_index = 0;    // No associated physical frame
         pt[i].pt_swap_index = 0;     // No associated swap file index
         pt[i].pt_status = NOT_LOADED; // Mark as not loaded

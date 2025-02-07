@@ -24,10 +24,10 @@
 #if OPT_SMARTVM
 
 /** @brief Page status constants. */
-#define NOT_LOADED 0       /**< Page is not loaded into memory or swap. */
-#define IN_MEMORY 1        /**< Page is currently in physical memory. */
-#define IN_SWAP 2          /**< Page is currently stored in the swap file. */
-#define IN_MEMORY_RDONLY 3 /**< Page is in memory and marked as read-only (if enabled). */
+#define NOT_LOADED 0       /* Page is not loaded into memory or swap */
+#define IN_MEMORY 1        /* Page is currently in physical memory */
+#define IN_SWAP 2          /* Page is currently stored in the swap file */
+#define IN_MEMORY_RDONLY 3 /* Page is in memory and marked as read-only (if enabled) */
 
 /**
  * @struct pt_entry
@@ -41,13 +41,13 @@
  * - `pt_status`: Status of the page (e.g., in memory, in swap, not loaded).
  */
 struct pt_entry {
-    unsigned int pt_frame_index : 20; /**< Physical frame index (20 bits). */
+    unsigned int pt_frame_index : 20; /* Physical frame index (20 bits) */
 #if OPT_SWAP
-    unsigned int pt_swap_index : SWAP_INDEX_SIZE; /**< Swap file index, size depends on SWAP_INDEX_SIZE. */
+    unsigned int pt_swap_index : SWAP_INDEX_SIZE; /* Swap file index, size depends on SWAP_INDEX_SIZE */
 #else
-    unsigned int pt_swap_index : 12; /**< Swap file index (12 bits by default). */
+    unsigned int pt_swap_index : 12; /* Swap file index (12 bits by default) */
 #endif
-    unsigned char pt_status : 2; /**< Page status (e.g., NOT_LOADED, IN_MEMORY). */
+    unsigned char pt_status : 2; /* Page status (e.g., NOT_LOADED, IN_MEMORY) */
 };
 
 /**
@@ -68,10 +68,10 @@ struct pt_entry *pt_get_entry(struct addrspace *as, const vaddr_t vaddr);
  * Allocates and initializes a page table with the specified number of entries. 
  * Each entry is initialized to default values (e.g., NOT_LOADED).
  * 
- * @param pagetable_size The number of entries in the page table.
+ * @param size The number of entries in the page table.
  * @return Pointer to the newly created page table, or NULL on failure.
  */
-struct pt_entry *pt_create(unsigned long pagetable_size);
+struct pt_entry *pt_create(unsigned long size);
 
 /**
  * @brief Frees all resources associated with a page table.

@@ -17,10 +17,10 @@
  */
 
 /* Swap file configuration constants */
-#define SWAPFILE_SIZE 9 * 1024 * 1024 /**< Total size of the swap file in bytes (9 MB). */
-#define SWAP_INDEX_SIZE 12 /**< Number of bits required to index all pages in the swap file. */
-#define SWAPFILE_NAME "emu0:/SWAPFILE" /**< Name of the swap file on the virtual filesystem. */
-#define SWAPFILE_NPAGES SWAPFILE_SIZE / PAGE_SIZE /**< Total number of pages in the swap file. */
+#define SWAPFILE_SIZE 9 * 1024 * 1024 /* Total size of the swap file in bytes (9 MB) */
+#define SWAP_INDEX_SIZE 12 /* Number of bits required to index all pages in the swap file */
+#define SWAPFILE_NAME "emu0:/SWAPFILE" /* Name of the swap file on the virtual filesystem */
+#define SWAPFILE_NPAGES SWAPFILE_SIZE / PAGE_SIZE /* Total number of pages in the swap file */
 
 /* Function declarations */
 
