@@ -17,7 +17,7 @@ struct coremap_entry
     unsigned char       cm_used : 1;    
     unsigned long       cm_allocsize : 20;      
     unsigned char       cm_lock : 1;
-    struct pt_entry     *cm_ptentry;            //Page table entry of the page in this frame, if it si a kernel page it is NULL
+    struct pt_entry     *cm_ptentry;            //Page table entry of the page in this frame, if it is a kernel page it is NULL
 };
 
 void        coremap_bootstrap(void);

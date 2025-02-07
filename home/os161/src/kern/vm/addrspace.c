@@ -42,7 +42,7 @@
 #endif
 
 
-#define VM_STACKPAGES    18  //Number of pages for the stack
+#define VM_STACKPAGES 18  //Number of pages for the stack
 
 #if OPT_SMARTVM
 

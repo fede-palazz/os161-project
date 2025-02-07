@@ -93,11 +93,9 @@ void coremap_bootstrap(){
 static int
 coremap_find_freeframes(int npages)
 {
-  int end;
-  int beginning;
+  int end=0;
+  int beginning=-1;
 
-  end = 0;
-  beginning = -1;
   while (end < nRamFrames)
   {
     //If the frame is used, reset beginning and skip the allocated frames
