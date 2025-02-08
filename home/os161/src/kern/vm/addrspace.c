@@ -33,7 +33,7 @@
 #include <addrspace.h>
 #include <vm.h>
 #include <proc.h>
-#include <segment.h>
+#include <segments.h>
 #include <vm_tlb.h>
 #include <pt.h>
 #include "opt-stats.h"
@@ -336,16 +336,6 @@ int as_load_page(struct addrspace *as,struct vnode *vnode, vaddr_t faultaddress)
 	if((segment->seg_first_vaddr & PAGE_FRAME )== ( faultaddress & PAGE_FRAME )){
 		/*	first page of the segment	*/
 
-		/**
-		 * The portion belonging to the first page of the segment
-		 * which has to be loaded from the elf has the size equal to 
-		 * the number of bytes starting from the first virtual address
-		 * up to the first virtual address of the next page.
-		 * It can be that the size of the segment within the elf
-		 * is even smaller, in this case, we only have to load this
-		 * portion into the right address.
-		 * 
-		 */
 		size = PAGE_SIZE - ( segment->seg_first_vaddr & ~PAGE_FRAME ) > segment->seg_elf_size ? 
 				segment->seg_elf_size :								/* in case the elfsize is smaller		*/
 				(PAGE_SIZE - ( segment->seg_first_vaddr & ~PAGE_FRAME )) ;	

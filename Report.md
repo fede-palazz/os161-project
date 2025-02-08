@@ -26,9 +26,9 @@ The last phase was optimization (that involved improvements in victim choice alg
 
 ## 3 - Address Space
 
-In OS161, the ELF file headers only explicitly defines two segments: the *.text* (read-only) and *.data* (read-write) segments. However, when the program is loaded into memory, the virtual address space also contains the *stack* segment, which is automatically created at runtime. Initially, in OS161, these segments were allocated contiguously, but with the introduction of a page table, this restriction is no longer necessary.
+In OS161, the ELF file headers only explicitly defines two segments: the _.text_ (read-only) and _.data_ (read-write) segments. However, when the program is loaded into memory, the virtual address space also contains the _stack_ segment, which is automatically created at runtime. Initially, in OS161, these segments were allocated contiguously, but with the introduction of a page table, this restriction is no longer necessary.
 
-The virtual memory space for a user program is mapped from the address `0x000000` to `0x80000000`, and the page size is equal to 4096 bytes (4KB). This allows a maximum of `0x80000` pages. 
+The virtual memory space for a user program is mapped from the address `0x000000` to `0x80000000`, and the page size is equal to 4096 bytes (4KB). This allows a maximum of `0x80000` pages.
 
 A straightforward page table implementation would include `0x80000` entries, but this approach would waste memory due to the empty unused regions. To solve this problem, the page table is optimized to include entries only for pages that are part of a segment. Consequently, calculating the correct page table index becomes more complex, as `index = vaddr / PAGE_SIZE` no longer applies due to skipped empty regions. This approach introduces some internal fragmentation because the first and last virtual addresses of the segments may not be multiples of the `PAGESIZE`.
 
@@ -109,7 +109,7 @@ int as_get_segment_type(struct addrspace *as, vaddr_t vaddr) {
     if (vaddr >= as->as_stack->seg_first_vaddr && vaddr < as->as_stack->seg_last_vaddr) {
         return SEGMENT_STACK;
     }
-    
+
     return 0;
 }
 ```
@@ -125,7 +125,7 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr) {
 	unsigned int pt_index;
 
     KASSERT(as != NULL);
-    
+
     switch (as_get_segment_type(as, vaddr)) {
         case SEGMENT_TEXT:
             pt_index = (vaddr - (as->as_text->seg_first_vaddr & PAGE_FRAME)) / PAGE_SIZE;
@@ -139,14 +139,14 @@ static int pt_get_index(struct addrspace *as, vaddr_t vaddr) {
         case SEGMENT_STACK:
             pt_index = as->as_text->seg_npages + as->as_data->seg_npages +
                        (vaddr - (as->as_stack->seg_first_vaddr & PAGE_FRAME)) / PAGE_SIZE;
-            KASSERT(pt_index < as->as_text->seg_npages + 
-                    			as->as_data->seg_npages + 
+            KASSERT(pt_index < as->as_text->seg_npages +
+                    			as->as_data->seg_npages +
                    				as->as_stack->seg_npages);
             return pt_index;
         default:
             panic("Invalid segment type!");
     }
-    
+
     return 0;
 }
 ```
@@ -166,7 +166,7 @@ struct coremap_entry {
 };
 ```
 
-Each memory frame in the coremap is represented by an entry that stores essential information. 
+Each memory frame in the coremap is represented by an entry that stores essential information.
 
 To manage memory effectively, the kernel performs a linear search in the coremap to locate free frames, identified by a bit indicating whether the frame is free or occupied (`cm_used`).
 
@@ -309,7 +309,7 @@ else if (((segment->seg_first_vaddr + segment->seg_elf_size) & PAGE_FRAME) == (f
 ```
 
 - **size**: The size of the last page (`segment->seg_first_vaddr + segment->seg_elf_size`).
-- **offset**: `segment->seg_elf_offset`  plus the offset between the segment's first virtual address and the page-aligned virtual address of the faulting page.
+- **offset**: `segment->seg_elf_offset` plus the offset between the segment's first virtual address and the page-aligned virtual address of the faulting page.
 - **target_addr**: Physical memory address of the allocated frame.
 
 3. _Middle Pages_
@@ -326,7 +326,6 @@ target_addr = pt_row->pt_frame_index * PAGE_SIZE;
 - **offset** and **target_addr** same as before
 
 After computing these values, `as_load_page` invokes `load_page` to load the page from the ELF file into memory, then returns control to `vm_fault`.
-
 
 ## 6 - SWAP
 
@@ -348,10 +347,10 @@ static struct bitmap *swapmap;
 swapmap = bitmap_create(SWAPFILE_SIZE / PAGE_SIZE);
 ```
 
-- _Swapping Out_: 
+- _Swapping Out_:
   To swap out a page, the kernel searches for an empty slot in the bitmap. The contents of a memory frame are then copied to the corresponding SWAPFILE page, and the respective bitmap bit is set to 1.
 
-- _Swapping In_: 
+- _Swapping In_:
   To swap in a page, the kernel reads from the SWAPFILE page at the given index, loads it into memory, and clears the corresponding bitmap bit by setting it to 0.
 
 ### 6.2 - SWAP Optimization: Avoiding Redundant Writes
@@ -534,27 +533,27 @@ We have created a modular kernel so that the features we implemented can be turn
 
 To test our project we mostly used tests already provided with OS161, but we also created the following ones:
 
-- testbin/hugematmult1
-- testbin/hugematmult2 (out of swap space with the current amount of memory)
+- testbin/matmult1
+- testbin/matmult2 (out of swap space with the current amount of memory)
 - testbin/nosywrite to obtain `VM_FAULT_READONLY`
 
 The results of the tests are reported below.
 
 ### 10.1 - User programs
 
-| RAM: 512K                 | palin  | huge   | sort   | matmult | hugematmult1 | hugematmult2 | ctest  |
-| ------------------------- | ------ | ------ | ------ | ------- | ------------ | ------------ | ------ |
-| Execution time            | 15.541 | 39.080 | 20.864 | 7.4875  | 56.832       | -            | 1464.0 |
-| TLB Faults                | 13986  | 7458   | 6720   | 4341    | 64464        | -            | 248545 |
-| TLB Faults with Free      | 13986  | 7439   | 6578   | 4319    | 64446        | -            | 248530 |
-| TLB Faults with Replace   | 0      | 19     | 142    | 22      | 18           | -            | 15     |
-| TLB Invalidations         | 7824   | 6697   | 2979   | 1218    | 8771         | -            | 247943 |
-| TLB Reloads               | 13981  | 3879   | 5055   | 3533    | 58866        | -            | 123624 |
-| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350         | -            | 257    |
-| Page Faults (Disk)        | 4      | 3067   | 1376   | 428     | 3248         | -            | 124664 |
-| Page Faults from ELF      | 4      | 58     | 25     | 13      | 78           | -            | 1605   |
-| Page Faults from Swapfile | 0      | 3009   | 1351   | 415     | 3170         | -            | 123059 |
-| Swapfile Writes           | 0      | 3451   | 1567   | 721     | 5450         | -            | 123242 |
+| RAM: 512K                 | palin  | huge   | sort   | matmult | matmult1 | matmult2 | ctest  |
+| ------------------------- | ------ | ------ | ------ | ------- | -------- | -------- | ------ |
+| Execution time            | 15.541 | 39.080 | 20.864 | 7.4875  | 56.832   | -        | 1464.0 |
+| TLB Faults                | 13986  | 7458   | 6720   | 4341    | 64464    | -        | 248545 |
+| TLB Faults with Free      | 13986  | 7439   | 6578   | 4319    | 64446    | -        | 248530 |
+| TLB Faults with Replace   | 0      | 19     | 142    | 22      | 18       | -        | 15     |
+| TLB Invalidations         | 7824   | 6697   | 2979   | 1218    | 8771     | -        | 247943 |
+| TLB Reloads               | 13981  | 3879   | 5055   | 3533    | 58866    | -        | 123624 |
+| Page Faults (Zeroed)      | 1      | 512    | 289    | 380     | 2350     | -        | 257    |
+| Page Faults (Disk)        | 4      | 3067   | 1376   | 428     | 3248     | -        | 124664 |
+| Page Faults from ELF      | 4      | 58     | 25     | 13      | 78       | -        | 1605   |
+| Page Faults from Swapfile | 0      | 3009   | 1351   | 415     | 3170     | -        | 123059 |
+| Swapfile Writes           | 0      | 3451   | 1567   | 721     | 5450     | -        | 123242 |
 
 ### 10.2 - Kernel tests
 

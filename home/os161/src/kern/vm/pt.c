@@ -1,7 +1,7 @@
 #include <pt.h>
 #include <proc.h>
 #include <addrspace.h>
-#include <segment.h>
+#include <segments.h>
 #include <current.h>
 #include <kern/errno.h>
 #include <swapfile.h>

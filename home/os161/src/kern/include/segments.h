@@ -1,5 +1,5 @@
-#ifndef _SEGMENT_H_
-#define _SEGMENT_H_
+#ifndef _SEGMENTS_H_
+#define _SEGMENTS_H_
 
 #include <types.h>
 #include "opt-smartvm.h"
@@ -20,4 +20,4 @@ void            segment_destroy(struct segment *seg);
 
 #endif /* OPT_SMARTVM */
 
-#endif /* _SEGMENT_H_ */
+#endif /* _SEGMENTS_H_ */
